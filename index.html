@@ -500,619 +500,649 @@
     <!-- SoundHelix提供のサンプルMP3を使用しています。必要に応じてURLを置き換えてください。 -->
     <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
 
-    <script>
+    <script> 
         // --- DOM Elements ---
-        const homeScreen = document.getElementById('homeScreen');
-        const timerScreen = document.getElementById('timerScreen');
-        const recordsScreen = document.getElementById('recordsScreen');
-        const focusButton = document.getElementById('focusButton');
-        const viewRecordsButton = document.getElementById('viewRecordsButton');
-        const backToHomeFromTimerButton = document.getElementById('backToHomeFromTimerButton');
-        const backToHomeFromRecordsButton = document.getElementById('backToHomeFromRecordsButton');
-        const noDataMessage = document.getElementById('noDataMessage');
-        const homeScreenSettingsButton = document.getElementById('homeScreenSettingsButton');
-        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+const homeScreen = document.getElementById('homeScreen');
+const timerScreen = document.getElementById('timerScreen');
+const recordsScreen = document.getElementById('recordsScreen');
+const focusButton = document.getElementById('focusButton');
+const viewRecordsButton = document.getElementById('viewRecordsButton');
+const backToHomeFromTimerButton = document.getElementById('backToHomeFromTimerButton');
+const backToHomeFromRecordsButton = document.getElementById('backToHomeFromRecordsButton');
+const noDataMessage = document.getElementById('noDataMessage');
+const homeScreenSettingsButton = document.getElementById('homeScreenSettingsButton');
+const currentTimeDisplay = document.getElementById('currentTimeDisplay');
 
-        const timerDisplay = document.getElementById('timerDisplay');
-        const startButton = document.getElementById('startButton');
-        const startButtonIcon = document.getElementById('startButtonIcon');
-        const startButtonText = document.getElementById('startButtonText');
-        const saveProgressButton = document.getElementById('saveProgressButton');
-        const settingsModal = document.getElementById('settingsModal');
-        const workTimeInput = document.getElementById('workTimeInput');
-        const breakTimeInput = document.getElementById('breakTimeInput');
-        const themeColorInput = document.getElementById('themeColorInput');
-        const clockFormat24 = document.getElementById('clockFormat24');
-        const clockFormat12 = document.getElementById('clockFormat12');
-        const saveSettingsButton = document.getElementById('saveSettingsButton');
-        const cancelSettingsButton = document.getElementById('cancelSettingsButton');
+const timerDisplay = document.getElementById('timerDisplay');
+const startButton = document.getElementById('startButton');
+const startButtonIcon = document.getElementById('startButtonIcon');
+const startButtonText = document.getElementById('startButtonText');
+const saveProgressButton = document.getElementById('saveProgressButton');
+const settingsModal = document.getElementById('settingsModal');
+const workTimeInput = document.getElementById('workTimeInput');
+const breakTimeInput = document.getElementById('breakTimeInput');
+const themeColorInput = document.getElementById('themeColorInput');
+const clockFormat24 = document.getElementById('clockFormat24');
+const clockFormat12 = document.getElementById('clockFormat12');
+const saveSettingsButton = document.getElementById('saveSettingsButton');
+const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 
-        const customAlertDialog = document.getElementById('customAlertDialog');
-        const alertMessage = document.getElementById('alertMessage');
-        let alertOkButton = document.getElementById('alertOkButton');
-        let alertCancelButton = document.getElementById('alertCancelButton');
+const customAlertDialog = document.getElementById('customAlertDialog');
+const alertMessage = document.getElementById('alertMessage');
+let alertOkButton = document.getElementById('alertOkButton');
+let alertCancelButton = document.getElementById('alertCancelButton');
 
-        // Progress bar elements
-        const progressBarFill = document.getElementById('progressBarFill');
+// Progress bar elements
+const progressBarFill = document.getElementById('progressBarFill');
 
-        // Session time display elements
-        const currentSessionWorkTime = document.getElementById('currentSessionWorkTime');
-        const currentSessionBreakTime = document.getElementById('currentSessionBreakTime');
+// Session time display elements
+const currentSessionWorkTime = document.getElementById('currentSessionWorkTime');
+const currentSessionBreakTime = document.getElementById('currentSessionBreakTime');
 
-        const recordsChartCanvas = document.getElementById('recordsChartCanvas');
-        let recordsChart; // To hold the Chart.js instance
+const recordsChartCanvas = document.getElementById('recordsChartCanvas');
+let recordsChart; // To hold the Chart.js instance
 
-        // Records time unit buttons
-        const dailyViewButton = document.getElementById('dailyViewButton');
-        const monthlyViewButton = document.getElementById('monthlyViewButton');
-        const yearlyViewButton = document.getElementById('yearlyViewButton');
+// Records time unit buttons
+const dailyViewButton = document.getElementById('dailyViewButton');
+const monthlyViewButton = document.getElementById('monthlyViewButton');
+const yearlyViewButton = document.getElementById('yearlyViewButton');
 
-        // --- Variables ---
-        let workTime = parseInt(localStorage.getItem('pomodoroWorkTime') || '25');
-        let breakTime = parseInt(localStorage.getItem('pomodoroBreakTime') || '5');
-        let themeColor = localStorage.getItem('pomodoroThemeColor') || '#ef4444';
-        let clockFormat = localStorage.getItem('pomodoroClockFormat') || '24'; // '24' or '12'
-        let currentTimeInSeconds = workTime * 60;
-        let totalPeriodSeconds = workTime * 60; // Total seconds for the current period
-        let isRunning = false;
-        let timerInterval = null; // Initialize to null
-        let isWorkPeriod = true; // true for work, false for break
-        let currentTimeInterval = null; // For home screen clock (global scope)
+// --- Variables ---
+let workTime = parseInt(localStorage.getItem('pomodoroWorkTime') || '25');
+let breakTime = parseInt(localStorage.getItem('pomodoroBreakTime') || '5');
+let themeColor = localStorage.getItem('pomodoroThemeColor') || '#ef4444';
+let clockFormat = localStorage.getItem('pomodoroClockFormat') || '24'; // '24' or '12'
+let currentTimeInSeconds = workTime * 60;
+let totalPeriodSeconds = workTime * 60; // Total seconds for the current period
+let isRunning = false;
+let timerInterval = null; // Initialize to null
+let isWorkPeriod = true; // true for work, false for break
+let currentTimeInterval = null; // For home screen clock (global scope)
 
-        // Session accumulated times (reset on full cycle completion or manual save)
-        let sessionFocusedSeconds = 0; // Changed to seconds for more accurate tracking
-        let sessionBreakSeconds = 0; // Changed to seconds for more accurate tracking
+// Session accumulated times (reset on full cycle completion or manual save)
+let sessionFocusedSeconds = 0; // Changed to seconds for more accurate tracking
+let sessionBreakSeconds = 0; // Changed to seconds for more accurate tracking
 
-        const RECORDS_KEY = 'pomodoroRecords';
-        let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
+const RECORDS_KEY = 'pomodoroRecords';
+let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
 
-        // --- Audio (Tone.jsを置き換え) ---
-        const alarmSound = document.getElementById('alarmSound'); // audio要素を取得
+// --- Audio ---
+const alarmSound = document.getElementById('alarmSound'); // audio要素を取得
+let audioUnlocked = false; // Add a flag to track if audio context is unlocked
 
-        function playAlarmSound() {
-            // 音量を設定（必要に応じて調整）
-            alarmSound.volume = 0.5; 
-            // 音を再生
-            alarmSound.play().catch(error => {
-                // 自動再生ポリシーなどで再生できなかった場合のハンドリング
-                console.warn("アラーム音の再生に失敗しました:", error);
-                // ユーザーに再生を促すメッセージなどを表示することも検討
-                // 例: showCustomAlertDialog('アラーム音の再生には、一度ページをクリックする必要があります。', () => {}, () => {});
-            });
-        }
-
-        // --- Utility Functions ---
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-        }
-
-        function formatCurrentTime(date) {
-            let hours = date.getHours();
-            const minutes = date.getMinutes();
-            const seconds = date.getSeconds();
-            let ampm = '';
-
-            if (clockFormat === '12') {
-                ampm = hours >= 12 ? ' PM' : ' AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; // The hour '0' should be '12' in 12-hour format
+function playAlarmSound() {
+    // Only attempt to play if audio has been unlocked or is allowed
+    if (audioUnlocked) {
+        alarmSound.volume = 0.5;
+        alarmSound.play().catch(error => {
+            console.warn("アラーム音の再生に失敗しました:", error);
+            // Optionally, inform the user if playback failed due to policy
+            if (error.name === 'NotAllowedError') {
+                showCustomAlertDialog('アラーム音の再生には、ページとのインタラクション（例: 開始ボタンのクリック）が必要です。', () => {}, () => {});
             }
+        });
+    } else {
+        console.log("Audio not unlocked yet. Waiting for user interaction.");
+        // If not unlocked, attempt to play quietly to unlock (some browsers might allow this)
+        // Or, more robustly, rely on the click handler to unlock it
+        alarmSound.volume = 0; // Play silently to try and unlock
+        alarmSound.play().then(() => {
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            alarmSound.volume = 0.5; // Reset volume
+            audioUnlocked = true;
+            console.log("Audio unlocked silently.");
+        }).catch(error => {
+            console.warn("Silent audio unlock failed:", error);
+        });
+    }
+}
 
-            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${ampm}`;
+// Function to unlock audio on first user interaction
+function unlockAudio() {
+    if (!audioUnlocked) {
+        // Attempt to play a silent sound to unlock the audio context
+        alarmSound.volume = 0;
+        alarmSound.play().then(() => {
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            alarmSound.volume = 0.5; // Reset volume
+            audioUnlocked = true;
+            console.log("Audio unlocked by user interaction.");
+        }).catch(error => {
+            console.warn("Failed to unlock audio with user interaction:", error);
+        });
+    }
+}
+
+// --- Utility Functions ---
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+function formatCurrentTime(date) {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const seconds = date.getSeconds();
+    let ampm = '';
+
+    if (clockFormat === '12') {
+        ampm = hours >= 12 ? ' PM' : ' AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // The hour '0' should be '12' in 12-hour format
+    }
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${ampm}`;
+}
+
+function updateCurrentTimeDisplay() {
+    const now = new Date();
+    currentTimeDisplay.textContent = formatCurrentTime(now);
+}
+
+function setThemeColors(color) {
+    document.documentElement.style.setProperty('--primary-color', color);
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    const darkerColor = `rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`;
+    document.documentElement.style.setProperty('--primary-color-dark', darkerColor);
+    document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
+
+    // Update chart colors immediately if chart exists
+    if (recordsChart) {
+        const primaryColorCss = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+        const breakColorCss = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
+        recordsChart.data.datasets[0].backgroundColor = primaryColorCss;
+        recordsChart.data.datasets[1].backgroundColor = breakColorCss;
+        recordsChart.update();
+    }
+}
+
+function updateDisplay() {
+    timerDisplay.textContent = formatTime(currentTimeInSeconds);
+
+    totalPeriodSeconds = isWorkPeriod ? workTime * 60 : breakTime * 60;
+
+    const progressPercentage = totalPeriodSeconds > 0 ? ((totalPeriodSeconds - currentTimeInSeconds) / totalPeriodSeconds) * 100 : 0;
+    progressBarFill.style.width = `${progressPercentage}%`;
+    progressBarFill.style.backgroundColor = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
+
+    timerDisplay.style.color = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
+
+    updateTimerButtonVisibility();
+
+    let displayWorkMins = Math.floor(sessionFocusedSeconds / 60);
+    let displayBreakMins = Math.floor(sessionBreakSeconds / 60);
+
+    if (isRunning) {
+        const elapsedSecondsThisPeriod = (totalPeriodSeconds - currentTimeInSeconds);
+        if (isWorkPeriod) {
+            displayWorkMins += Math.floor(elapsedSecondsThisPeriod / 60);
+        } else {
+            displayBreakMins += Math.floor(elapsedSecondsThisPeriod / 60);
         }
+    }
 
-        function updateCurrentTimeDisplay() {
-            const now = new Date();
-            currentTimeDisplay.textContent = formatCurrentTime(now);
+    currentSessionWorkTime.textContent = `集中: ${displayWorkMins}分`;
+    currentSessionBreakTime.textContent = `休憩: ${displayBreakMins}分`;
+}
+
+function updateTimerButtonVisibility() {
+    if (timerInterval !== null) {
+        saveProgressButton.classList.remove('hidden');
+        backToHomeFromTimerButton.classList.add('hidden');
+    } else {
+        saveProgressButton.classList.add('hidden');
+        backToHomeFromTimerButton.classList.remove('hidden');
+    }
+}
+
+// --- Local Storage Management for Records ---
+function getRecords() {
+    try {
+        const recordsJson = localStorage.getItem(RECORDS_KEY);
+        return recordsJson ? JSON.parse(recordsJson) : [];
+    } catch (e) {
+        console.error("Error parsing records from localStorage", e);
+        return [];
+    }
+}
+
+function saveRecords(records) {
+    try {
+        localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+    } catch (e) {
+        console.error("Error saving records to localStorage", e);
+    }
+}
+
+function addRecord(type, durationMinutes) {
+    if (durationMinutes <= 0 || isNaN(durationMinutes)) {
+        return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const records = getRecords();
+    let recordFound = false;
+
+    for (let i = 0; i < records.length; i++) {
+        if (records[i].date === today) {
+            if (type === 'work') {
+                records[i].workMinutes = (records[i].workMinutes || 0) + durationMinutes;
+            } else if (type === 'break') {
+                records[i].breakMinutes = (records[i].breakMinutes || 0) + durationMinutes;
+            }
+            recordFound = true;
+            break;
         }
+    }
 
-        function setThemeColors(color) {
-            document.documentElement.style.setProperty('--primary-color', color);
-            const r = parseInt(color.slice(1, 3), 16);
-            const g = parseInt(color.slice(3, 5), 16);
-            const b = parseInt(color.slice(5, 7), 16);
-            const darkerColor = `rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`;
-            document.documentElement.style.setProperty('--primary-color-dark', darkerColor);
-            document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
-
-            // Update chart colors immediately if chart exists
-            if (recordsChart) {
-                const primaryColorCss = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
-                const breakColorCss = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
-                recordsChart.data.datasets[0].backgroundColor = primaryColorCss;
-                recordsChart.data.datasets[1].backgroundColor = breakColorCss;
-                recordsChart.update();
-            }
+    if (!recordFound) {
+        const newRecord = { date: today, workMinutes: 0, breakMinutes: 0 };
+        if (type === 'work') {
+            newRecord.workMinutes = durationMinutes;
+        } else if (type === 'break') {
+            newRecord.breakMinutes = durationMinutes;
         }
+        records.push(newRecord);
+    }
 
-        function updateDisplay() {
-            timerDisplay.textContent = formatTime(currentTimeInSeconds);
-            
-            totalPeriodSeconds = isWorkPeriod ? workTime * 60 : breakTime * 60;
+    records.sort((a, b) => new Date(a.date) - new Date(b.date));
+    saveRecords(records);
+}
 
-            const progressPercentage = totalPeriodSeconds > 0 ? ((totalPeriodSeconds - currentTimeInSeconds) / totalPeriodSeconds) * 100 : 0;
-            progressBarFill.style.width = `${progressPercentage}%`;
-            progressBarFill.style.backgroundColor = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
+// --- Timer Logic ---
+function startTimer() {
+    // Attempt to unlock audio when the start button is clicked
+    unlockAudio();
 
-            timerDisplay.style.color = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
+    if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        startButtonIcon.classList.remove('fa-pause');
+        startButtonIcon.classList.add('fa-play');
+        startButtonText.textContent = 'スタート';
+    } else {
+        isRunning = true;
+        startButtonIcon.classList.remove('fa-play');
+        startButtonIcon.classList.add('fa-pause');
+        startButtonText.textContent = '一時停止';
 
-            updateTimerButtonVisibility();
+        if (timerInterval) clearInterval(timerInterval);
 
-            let displayWorkMins = Math.floor(sessionFocusedSeconds / 60);
-            let displayBreakMins = Math.floor(sessionBreakSeconds / 60);
+        timerInterval = setInterval(() => {
+            currentTimeInSeconds--;
+            updateDisplay();
 
-            if (isRunning) {
-                const elapsedSecondsThisPeriod = (totalPeriodSeconds - currentTimeInSeconds);
-                if (isWorkPeriod) {
-                    displayWorkMins += Math.floor(elapsedSecondsThisPeriod / 60);
-                } else {
-                    displayBreakMins += Math.floor(elapsedSecondsThisPeriod / 60);
-                }
-            }
-
-            currentSessionWorkTime.textContent = `集中: ${displayWorkMins}分`;
-            currentSessionBreakTime.textContent = `休憩: ${displayBreakMins}分`;
-        }
-
-        function updateTimerButtonVisibility() {
-            if (timerInterval !== null) {
-                saveProgressButton.classList.remove('hidden');
-                backToHomeFromTimerButton.classList.add('hidden');
-            } else {
-                saveProgressButton.classList.add('hidden');
-                backToHomeFromTimerButton.classList.remove('hidden');
-            }
-        }
-
-        // --- Local Storage Management for Records ---
-        function getRecords() {
-            try {
-                const recordsJson = localStorage.getItem(RECORDS_KEY);
-                return recordsJson ? JSON.parse(recordsJson) : [];
-            } catch (e) {
-                console.error("Error parsing records from localStorage", e);
-                return [];
-            }
-        }
-
-        function saveRecords(records) {
-            try {
-                localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
-            } catch (e) {
-                console.error("Error saving records to localStorage", e);
-            }
-        }
-
-        function addRecord(type, durationMinutes) {
-            if (durationMinutes <= 0 || isNaN(durationMinutes)) {
-                return;
-            }
-
-            const today = new Date().toISOString().slice(0, 10);
-            const records = getRecords();
-            let recordFound = false;
-
-            for (let i = 0; i < records.length; i++) {
-                if (records[i].date === today) {
-                    if (type === 'work') {
-                        records[i].workMinutes = (records[i].workMinutes || 0) + durationMinutes;
-                    } else if (type === 'break') {
-                        records[i].breakMinutes = (records[i].breakMinutes || 0) + durationMinutes;
-                    }
-                    recordFound = true;
-                    break;
-                }
-            }
-
-            if (!recordFound) {
-                const newRecord = { date: today, workMinutes: 0, breakMinutes: 0 };
-                if (type === 'work') {
-                    newRecord.workMinutes = durationMinutes;
-                } else if (type === 'break') {
-                    newRecord.breakMinutes = durationMinutes;
-                }
-                records.push(newRecord);
-            }
-
-            records.sort((a, b) => new Date(a.date) - new Date(b.date));
-            saveRecords(records);
-        }
-
-        // --- Timer Logic ---
-        function startTimer() {
-            if (isRunning) {
+            if (currentTimeInSeconds <= 0) {
+                playAlarmSound();
                 clearInterval(timerInterval);
-                isRunning = false;
-                startButtonIcon.classList.remove('fa-pause');
-                startButtonIcon.classList.add('fa-play');
-                startButtonText.textContent = 'スタート';
-            } else {
-                isRunning = true;
-                startButtonIcon.classList.remove('fa-play');
-                startButtonIcon.classList.add('fa-pause');
-                startButtonText.textContent = '一時停止';
-                
-                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = null;
 
-                timerInterval = setInterval(() => {
-                    currentTimeInSeconds--;
-                    updateDisplay();
-
-                    if (currentTimeInSeconds <= 0) {
-                        playAlarmSound();
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-
-                        const completedMinutes = isWorkPeriod ? workTime : breakTime;
-                        if (isWorkPeriod) {
-                            sessionFocusedSeconds += workTime * 60;
-                        } else {
-                            sessionBreakSeconds += breakTime * 60;
-                        }
-
-                        addRecord(isWorkPeriod ? 'work' : 'break', completedMinutes);
-
-                        if (isWorkPeriod) {
-                            isWorkPeriod = false;
-                            currentTimeInSeconds = breakTime * 60;
-                            totalPeriodSeconds = breakTime * 60;
-                            startTimer();
-                        } else {
-                            resetTimer();
-                            showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
-                            }, () => {
-                            });
-                        }
-                    }
-                }, 1000);
-            }
-        }
-
-        function resetTimer() {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            isRunning = false;
-            isWorkPeriod = true;
-            currentTimeInSeconds = workTime * 60;
-            
-            sessionFocusedSeconds = 0;
-            sessionBreakSeconds = 0;
-
-            startButtonIcon.classList.remove('fa-pause');
-            startButtonIcon.classList.add('fa-play');
-            startButtonText.textContent = 'スタート';
-
-            updateDisplay();
-        }
-
-        function saveProgress() {
-            const elapsedSecondsThisPeriod = totalPeriodSeconds - currentTimeInSeconds;
-
-            if (isWorkPeriod) {
-                sessionFocusedSeconds += elapsedSecondsThisPeriod;
-            } else {
-                sessionBreakSeconds += elapsedSecondsThisPeriod;
-            }
-
-            if (sessionFocusedSeconds > 0) {
-                addRecord('work', Math.floor(sessionFocusedSeconds / 60));
-            }
-            if (sessionBreakSeconds > 0) {
-                addRecord('break', Math.floor(sessionBreakSeconds / 60));
-            }
-
-            resetTimer();
-            showCustomAlertDialog('現在のセッションの集中時間と休憩時間を記録しました。', () => {}, () => {});
-        }
-
-        // --- Screen Navigation ---
-        function showScreen(screenToShow) {
-            homeScreen.classList.add('hidden');
-            timerScreen.classList.add('hidden');
-            recordsScreen.classList.add('hidden');
-            
-            screenToShow.classList.remove('hidden');
-
-            if (screenToShow === homeScreen) {
-                clearInterval(currentTimeInterval);
-                currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000);
-                updateCurrentTimeDisplay();
-            } else {
-                clearInterval(currentTimeInterval);
-            }
-
-            if (screenToShow === recordsScreen) {
-                renderChart(currentChartTimeUnit);
-            }
-        }
-
-        // --- Custom Alert/Confirm Dialog Logic ---
-        let resolveAlertDialog;
-        function showCustomAlertDialog(message, onConfirm, onCancel) {
-            alertMessage.textContent = message;
-            customAlertDialog.classList.remove('hidden');
-
-            return new Promise((resolve) => {
-                resolveAlertDialog = resolve;
-
-                const handleOk = () => {
-                    customAlertDialog.classList.add('hidden');
-                    if (onConfirm) onConfirm();
-                    alertOkButton.removeEventListener('click', handleOk);
-                    alertCancelButton.removeEventListener('click', handleCancel);
-                    resolve(true);
-                };
-
-                const handleCancel = () => {
-                    customAlertDialog.classList.add('hidden');
-                    if (onCancel) onCancel();
-                    alertOkButton.removeEventListener('click', handleOk);
-                    alertCancelButton.removeEventListener('click', handleCancel);
-                    resolve(false);
-                };
-
-                alertOkButton.addEventListener('click', handleOk);
-                alertCancelButton.addEventListener('click', handleCancel);
-            });
-        }
-
-        // --- Event Listeners ---
-        focusButton.addEventListener('click', () => {
-            showScreen(timerScreen);
-            resetTimer();
-            updateDisplay();
-        });
-
-        viewRecordsButton.addEventListener('click', () => {
-            showScreen(recordsScreen);
-            renderChart(currentChartTimeUnit);
-        });
-
-        backToHomeFromTimerButton.addEventListener('click', () => {
-            if (isRunning || timerInterval !== null) {
-                showCustomAlertDialog('タイマーが実行中または一時停止中です。進捗を破棄してホームに戻りますか？', () => {
-                    resetTimer();
-                    showScreen(homeScreen);
-                }, () => {
-                });
-            } else {
-                showScreen(homeScreen);
-            }
-        });
-
-        backToHomeFromRecordsButton.addEventListener('click', () => {
-            showScreen(homeScreen);
-        });
-
-        startButton.addEventListener('click', startTimer);
-        saveProgressButton.addEventListener('click', saveProgress);
-
-        homeScreenSettingsButton.addEventListener('click', () => {
-            workTimeInput.value = workTime;
-            breakTimeInput.value = breakTime;
-            themeColorInput.value = themeColor;
-            if (clockFormat === '24') {
-                clockFormat24.checked = true;
-            } else {
-                clockFormat12.checked = true;
-            }
-            settingsModal.classList.remove('hidden');
-        });
-
-        cancelSettingsButton.addEventListener('click', () => {
-            settingsModal.classList.add('hidden');
-            workTimeInput.value = workTime;
-            breakTimeInput.value = breakTime;
-            themeColorInput.value = themeColor;
-            if (clockFormat === '24') {
-                clockFormat24.checked = true;
-            } else {
-                clockFormat12.checked = true;
-            }
-        });
-
-        saveSettingsButton.addEventListener('click', () => {
-            const newWorkTime = parseInt(workTimeInput.value);
-            const newBreakTime = parseInt(breakTimeInput.value);
-            const newThemeColor = themeColorInput.value;
-            const newClockFormat = document.querySelector('input[name="clockFormat"]:checked').value;
-
-            if (newWorkTime < 1 || newBreakTime < 1) {
-                showCustomAlertDialog('作業時間と休憩時間は1分以上で設定してください。', () => {}, () => {});
-                return;
-            }
-
-            if (workTime !== newWorkTime) {
-                workTime = newWorkTime;
-                localStorage.setItem('pomodoroWorkTime', workTime);
-            }
-            if (breakTime !== newBreakTime) {
-                breakTime = newBreakTime;
-                localStorage.setItem('pomodoroBreakTime', breakTime);
-            }
-            if (themeColor !== newThemeColor) {
-                themeColor = newThemeColor;
-                localStorage.setItem('pomodoroThemeColor', themeColor);
-                setThemeColors(themeColor);
-            }
-            if (clockFormat !== newClockFormat) {
-                clockFormat = newClockFormat;
-                localStorage.setItem('pomodoroClockFormat', clockFormat);
-                updateCurrentTimeDisplay();
-            }
-            
-            if (timerInterval === null) {
-                resetTimer();
-            } else {
+                const completedMinutes = isWorkPeriod ? workTime : breakTime;
                 if (isWorkPeriod) {
-                    totalPeriodSeconds = workTime * 60;
+                    sessionFocusedSeconds += workTime * 60;
                 } else {
+                    sessionBreakSeconds += breakTime * 60;
+                }
+
+                addRecord(isWorkPeriod ? 'work' : 'break', completedMinutes);
+
+                if (isWorkPeriod) {
+                    isWorkPeriod = false;
+                    currentTimeInSeconds = breakTime * 60;
                     totalPeriodSeconds = breakTime * 60;
+                    startTimer(); // Automatically start break timer
+                } else {
+                    resetTimer(); // Reset for next work period
+                    showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
+                        // User clicked 'Yes', so implicitly start a new work session if they were focused
+                        // No need to explicitly start a timer here, as `resetTimer` sets up for a new work session
+                        // and they would click "スタート" again.
+                    }, () => {
+                        // User clicked 'No', just close the alert.
+                    });
                 }
-                updateDisplay();
             }
+        }, 1000);
+    }
+}
 
-            settingsModal.classList.add('hidden');
-        });
+function resetTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    isRunning = false;
+    isWorkPeriod = true;
+    currentTimeInSeconds = workTime * 60;
 
-        // --- Chart Logic ---
-        function processRecordsForChart(records, timeUnit) {
-            const dataMap = new Map();
+    sessionFocusedSeconds = 0;
+    sessionBreakSeconds = 0;
 
-            records.forEach(record => {
-                const date = new Date(record.date);
-                let key;
-                if (timeUnit === 'day') {
-                    key = record.date;
-                } else if (timeUnit === 'month') {
-                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                } else if (timeUnit === 'year') {
-                    key = `${date.getFullYear()}`;
-                }
+    startButtonIcon.classList.remove('fa-pause');
+    startButtonIcon.classList.add('fa-play');
+    startButtonText.textContent = 'スタート';
 
-                if (!dataMap.has(key)) {
-                    dataMap.set(key, { workMinutes: 0, breakMinutes: 0 });
-                }
-                const currentData = dataMap.get(key);
-                currentData.workMinutes += (record.workMinutes || 0);
-                currentData.breakMinutes += (record.breakMinutes || 0);
-            });
+    updateDisplay();
+}
 
-            const sortedKeys = Array.from(dataMap.keys()).sort();
+function saveProgress() {
+    const elapsedSecondsThisPeriod = totalPeriodSeconds - currentTimeInSeconds;
 
-            const labels = [];
-            const workData = [];
-            const breakData = [];
+    if (isWorkPeriod) {
+        sessionFocusedSeconds += elapsedSecondsThisPeriod;
+    } else {
+        sessionBreakSeconds += elapsedSecondsThisPeriod;
+    }
 
-            sortedKeys.forEach(key => {
-                labels.push(key);
-                const data = dataMap.get(key);
-                workData.push(data.workMinutes);
-                breakData.push(data.breakMinutes);
-            });
+    if (sessionFocusedSeconds > 0) {
+        addRecord('work', Math.floor(sessionFocusedSeconds / 60));
+    }
+    if (sessionBreakSeconds > 0) {
+        addRecord('break', Math.floor(sessionBreakSeconds / 60));
+    }
 
-            return { labels, workData, breakData };
+    resetTimer();
+    showCustomAlertDialog('現在のセッションの集中時間と休憩時間を記録しました。', () => {}, () => {});
+}
+
+// --- Screen Navigation ---
+function showScreen(screenToShow) {
+    homeScreen.classList.add('hidden');
+    timerScreen.classList.add('hidden');
+    recordsScreen.classList.add('hidden');
+
+    screenToShow.classList.remove('hidden');
+
+    if (screenToShow === homeScreen) {
+        clearInterval(currentTimeInterval);
+        currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000);
+        updateCurrentTimeDisplay();
+    } else {
+        clearInterval(currentTimeInterval);
+    }
+
+    if (screenToShow === recordsScreen) {
+        renderChart(currentChartTimeUnit);
+    }
+}
+
+// --- Custom Alert/Confirm Dialog Logic ---
+let resolveAlertDialog;
+function showCustomAlertDialog(message, onConfirm, onCancel) {
+    alertMessage.textContent = message;
+    customAlertDialog.classList.remove('hidden');
+
+    // Remove previous event listeners to prevent multiple calls
+    alertOkButton.onclick = null;
+    alertCancelButton.onclick = null;
+
+    alertOkButton.onclick = () => {
+        customAlertDialog.classList.add('hidden');
+        if (onConfirm) onConfirm();
+    };
+
+    alertCancelButton.onclick = () => {
+        customAlertDialog.classList.add('hidden');
+        if (onCancel) onCancel();
+    };
+}
+
+
+// --- Chart Logic ---
+function getChartData(timeUnit) {
+    const records = getRecords();
+    let labels = [];
+    let workData = [];
+    let breakData = [];
+    let aggregatedData = {}; // To sum up minutes by day, month, or year
+
+    records.forEach(record => {
+        const recordDate = new Date(record.date);
+        let key;
+
+        if (timeUnit === 'day') {
+            key = record.date;
+        } else if (timeUnit === 'month') {
+            key = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
+        } else if (timeUnit === 'year') {
+            key = String(recordDate.getFullYear());
         }
 
-        function renderChart(timeUnit) {
-            const records = getRecords();
-            const { labels, workData, breakData } = processRecordsForChart(records, timeUnit);
+        if (!aggregatedData[key]) {
+            aggregatedData[key] = { work: 0, break: 0 };
+        }
+        aggregatedData[key].work += (record.workMinutes || 0);
+        aggregatedData[key].break += (record.breakMinutes || 0);
+    });
 
-            if (recordsChart) {
-                recordsChart.destroy();
-            }
+    // Sort keys and populate labels and data arrays
+    const sortedKeys = Object.keys(aggregatedData).sort();
+    if (sortedKeys.length === 0) {
+        return { labels: [], datasets: [] };
+    }
 
-            if (labels.length === 0) {
-                noDataMessage.classList.remove('hidden');
-                recordsChartCanvas.classList.add('hidden');
-                return;
-            } else {
-                noDataMessage.classList.add('hidden');
-                recordsChartCanvas.classList.remove('hidden');
-            }
+    // Generate labels for the last 7 days, 12 months, or 5 years if data is sparse
+    let generatedLabels = [];
+    if (timeUnit === 'day') {
+        for (let i = 6; i >= 0; i--) { // Last 7 days
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            generatedLabels.push(d.toISOString().slice(0, 10));
+        }
+    } else if (timeUnit === 'month') {
+        for (let i = 11; i >= 0; i--) { // Last 12 months
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            generatedLabels.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+        }
+    } else if (timeUnit === 'year') {
+        const currentYear = new Date().getFullYear();
+        for (let i = 4; i >= 0; i--) { // Last 5 years
+            generatedLabels.push(String(currentYear - i));
+        }
+    }
 
-            const ctx = recordsChartCanvas.getContext('2d');
-            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
-            const breakColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
+    labels = Array.from(new Set([...generatedLabels, ...sortedKeys])).sort(); // Combine and sort unique keys
 
-            recordsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: '集中時間 (分)',
-                            data: workData,
-                            backgroundColor: primaryColor,
-                            borderColor: primaryColor,
-                            borderWidth: 1
-                        },
-                        {
-                            label: '休憩時間 (分)',
-                            data: breakData,
-                            backgroundColor: breakColor,
-                            borderColor: breakColor,
-                            borderWidth: 1
-                        }
-                    ]
+    labels.forEach(label => {
+        workData.push(aggregatedData[label] ? aggregatedData[label].work : 0);
+        breakData.push(aggregatedData[label] ? aggregatedData[label].break : 0);
+    });
+
+    return { labels, workData, breakData };
+}
+
+function renderChart(timeUnit) {
+    const { labels, workData, breakData } = getChartData(timeUnit);
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    const breakColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
+
+    if (recordsChart) {
+        recordsChart.destroy(); // Destroy existing chart before creating a new one
+    }
+
+    if (labels.length === 0) {
+        noDataMessage.classList.remove('hidden');
+        recordsChartCanvas.classList.add('hidden');
+        return;
+    } else {
+        noDataMessage.classList.add('hidden');
+        recordsChartCanvas.classList.remove('hidden');
+    }
+
+    recordsChart = new Chart(recordsChartCanvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '集中時間 (分)',
+                    data: workData,
+                    backgroundColor: primaryColor,
+                    borderColor: primaryColor,
+                    borderWidth: 1
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            stacked: true,
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: timeUnit === 'day' ? '日付' : (timeUnit === 'month' ? '年月' : '年')
-                            }
-                        },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: '時間 (分)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        legend: {
-                            display: true
-                        }
+                {
+                    label: '休憩時間 (分)',
+                    data: breakData,
+                    backgroundColor: breakColor,
+                    borderColor: breakColor,
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: timeUnit === 'day' ? '日付' : timeUnit === 'month' ? '月' : '年'
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '時間 (分)'
                     }
                 }
-            });
-
-            if (timeUnit === 'day' && labels.length > 7) {
-                recordsChartCanvas.style.minWidth = `${labels.length * 50}px`;
-            } else {
-                recordsChartCanvas.style.minWidth = '380px';
+            },
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
             }
         }
+    });
 
-        dailyViewButton.addEventListener('click', () => {
-            currentChartTimeUnit = 'day';
-            dailyViewButton.classList.add('active');
-            monthlyViewButton.classList.remove('active');
-            yearlyViewButton.classList.remove('active');
-            renderChart(currentChartTimeUnit);
-        });
+    // Adjust chart width for daily view to prevent bars from being too thin
+    if (timeUnit === 'day' && labels.length > 7) {
+        recordsChartCanvas.style.width = `${labels.length * 50}px`; // Adjust 50px per bar as needed
+    } else {
+        recordsChartCanvas.style.width = '100%';
+    }
+}
 
-        monthlyViewButton.addEventListener('click', () => {
-            currentChartTimeUnit = 'month';
-            dailyViewButton.classList.remove('active');
-            monthlyViewButton.classList.add('active');
-            yearlyViewButton.classList.remove('active');
-            renderChart(currentChartTimeUnit);
-        });
 
-        yearlyViewButton.addEventListener('click', () => {
-            currentChartTimeUnit = 'year';
-            dailyViewButton.classList.remove('active');
-            monthlyViewButton.classList.remove('active');
-            yearlyViewButton.classList.add('active');
-            renderChart(currentChartTimeUnit);
-        });
+// --- Event Listeners ---
+focusButton.addEventListener('click', () => {
+    showScreen(timerScreen);
+    resetTimer(); // Ensure timer is reset when moving to timer screen
+});
 
-        // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
-            setThemeColors(themeColor);
-            if (clockFormat === '24') {
-                clockFormat24.checked = true;
-            } else {
-                clockFormat12.checked = true;
-            }
-            updateDisplay();
-            showScreen(homeScreen);
+viewRecordsButton.addEventListener('click', () => {
+    showScreen(recordsScreen);
+    renderChart(currentChartTimeUnit); // Render chart when records screen is shown
+});
+
+backToHomeFromTimerButton.addEventListener('click', () => {
+    // Only allow going back if the timer is not running
+    if (!isRunning) {
+        showScreen(homeScreen);
+    } else {
+        showCustomAlertDialog('タイマーが実行中です。ホーム画面に戻るには、タイマーを停止または保存してください。', () => {}, () => {
         });
+    }
+});
+
+backToHomeFromRecordsButton.addEventListener('click', () => {
+    showScreen(homeScreen);
+});
+
+homeScreenSettingsButton.addEventListener('click', () => {
+    workTimeInput.value = workTime;
+    breakTimeInput.value = breakTime;
+    themeColorInput.value = themeColor;
+    if (clockFormat === '24') {
+        clockFormat24.checked = true;
+    } else {
+        clockFormat12.checked = true;
+    }
+    settingsModal.classList.remove('hidden');
+});
+
+cancelSettingsButton.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+});
+
+saveSettingsButton.addEventListener('click', () => {
+    const newWorkTime = parseInt(workTimeInput.value);
+    const newBreakTime = parseInt(breakTimeInput.value);
+    const newThemeColor = themeColorInput.value;
+    const newClockFormat = clockFormat24.checked ? '24' : '12';
+
+    if (newWorkTime < 1 || newBreakTime < 1) {
+        showCustomAlertDialog('作業時間と休憩時間は1分以上である必要があります。', () => {}, () => {});
+        return;
+    }
+
+    workTime = newWorkTime;
+    breakTime = newBreakTime;
+    themeColor = newThemeColor;
+    clockFormat = newClockFormat;
+
+    localStorage.setItem('pomodoroWorkTime', workTime);
+    localStorage.setItem('pomodoroBreakTime', breakTime);
+    localStorage.setItem('pomodoroThemeColor', themeColor);
+    localStorage.setItem('pomodoroClockFormat', clockFormat);
+
+    setThemeColors(themeColor); // Apply new theme color
+    resetTimer(); // Reset timer with new work/break times
+    updateCurrentTimeDisplay(); // Update clock display with new format
+    settingsModal.classList.add('hidden');
+});
+
+startButton.addEventListener('click', startTimer);
+saveProgressButton.addEventListener('click', saveProgress);
+
+// Records screen time unit buttons
+dailyViewButton.addEventListener('click', () => {
+    currentChartTimeUnit = 'day';
+    dailyViewButton.classList.add('active');
+    monthlyViewButton.classList.remove('active');
+    yearlyViewButton.classList.remove('active');
+    renderChart(currentChartTimeUnit);
+});
+
+monthlyViewButton.addEventListener('click', () => {
+    currentChartTimeUnit = 'month';
+    dailyViewButton.classList.remove('active');
+    monthlyViewButton.classList.add('active');
+    yearlyViewButton.classList.remove('active');
+    renderChart(currentChartTimeUnit);
+});
+
+yearlyViewButton.addEventListener('click', () => {
+    currentChartTimeUnit = 'year';
+    dailyViewButton.classList.remove('active');
+    monthlyViewButton.classList.remove('active');
+    yearlyViewButton.classList.add('active');
+    renderChart(currentChartTimeUnit);
+});
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+    setThemeColors(themeColor); // Apply initial theme
+    updateDisplay(); // Initialize timer display
+    showScreen(homeScreen); // Start on the home screen
+    updateCurrentTimeDisplay(); // Display current time immediately
+    currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000); // Start clock update interval
+
+    // Add a global click listener to unlock audio as soon as possible
+    document.body.addEventListener('click', unlockAudio, { once: true });
+});
     </script>
 </body>
 </html>
