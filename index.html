@@ -1,208 +1,1179 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ポモドーロタイマー</title>
-  <!-- Android Material Design風 -->
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Roboto', sans-serif;
-      background-color: #FAFAFA;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    #container {
-      text-align: center;
-      background: #FFFFFF;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      border-radius: 8px;
-      padding: 2rem;
-      position: relative;
-      width: 300px;
-    }
-    #timer {
-      font-size: 3.5rem;
-      color: #212121;
-      margin-bottom: 1rem;
-    }
-    .fab {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background-color: #6200EE;
-      color: #FFFFFF;
-      border: none;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 24px;
-      box-shadow: 0 6px 10px rgba(0,0,0,0.3);
-      cursor: pointer;
-    }
-    #startPause { position: relative; }
-    #resetBtn {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background-color: #B00020;
-    }
-    #settingsBtn {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: #03DAC5;
-      font-size: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-    #overlay, #settingsDialog { display: none; }
-    #overlay.active {
-      display: block;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.3);
-      z-index: 5;
-    }
-    #settingsDialog.active {
-      display: block;
-      position: fixed;
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: #FFFFFF;
-      padding: 1.5rem;
-      box-shadow: 0 6px 10px rgba(0,0,0,0.3);
-      border-radius: 8px;
-      z-index: 10;
-      width: 260px;
-      text-align: left;
-    }
-    label { display: block; margin: 0.5rem 0; font-size: 1rem; color: #424242; }
-    input[type=number] { width: 60px; font-size: 1rem; padding: 0.2rem; }
-    #saveSettings {
-      margin-top: 1rem;
-      width: 100%;
-      padding: 0.5rem;
-      background-color: #6200EE;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポモドーロタイマー</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* Define CSS Custom Properties for theme colors */
+        :root {
+            --primary-color: #ef4444; /* Default Red */
+            --primary-color-dark: #dc2626; /* Darker Red for hover */
+            --secondary-period-color: #10b981; /* Green for break period */
+            --chart-work-color: #3b82f6; /* Blue for work on chart (default for chart if not overridden)*/
+            --chart-break-color: #10b981; /* Green for break on chart (default for chart if not overridden)*/
+        }
+
+        /* General Body and Screen Layout */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light grey background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px; /* Padding around the content */
+            box-sizing: border-box;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        .screen {
+            background-color: #ffffff;
+            border-radius: 16px; /* Material rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation */
+            padding: 32px;
+            width: 100%;
+            max-width: 400px; /* Max width for mobile-first approach */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative; /* For settings button positioning */
+            min-height: 400px; /* Ensure consistent card size */
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Timer Screen specific styles */
+        #timerScreen .timer-display {
+            font-size: 6rem; /* Large timer font */
+            font-weight: 700;
+            color: var(--primary-color); /* Use custom property for theme color */
+            margin-bottom: 24px;
+            letter-spacing: -2px; /* Slight letter spacing adjustment */
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            justify-content: center;
+            gap: 16px; /* Space between buttons */
+            margin-top: 24px;
+        }
+
+        .button-primary {
+            background-color: var(--primary-color); /* Use custom property for theme color */
+            color: white;
+            padding: 16px 32px;
+            border-radius: 32px; /* Pill-shaped button */
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        .button-primary:hover {
+            background-color: var(--primary-color-dark); /* Darker theme color on hover */
+            transform: translateY(-2px);
+        }
+
+        .button-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .button-secondary {
+            background-color: #6b7280; /* Grey secondary button */
+            color: white;
+            padding: 16px 24px; /* Slightly less padding for secondary action */
+            border-radius: 32px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            white-space: nowrap;
+        }
+
+        .button-secondary:hover {
+            background-color: #4b5563; /* Darker grey on hover */
+            transform: translateY(-2px);
+        }
+
+        .button-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-button, .home-screen-settings-button, .back-button-top {
+            position: absolute;
+            background-color: transparent;
+            border: none;
+            font-size: 2rem;
+            color: #6b7280; /* Grey color for settings icon */
+            cursor: pointer;
+            transition: color 0.3s ease;
+            outline: none;
+        }
+
+        .home-screen-settings-button {
+            top: 20px;
+            right: 20px;
+        }
+
+        .back-button-top {
+            top: 20px;
+            left: 20px;
+            font-size: 1.5rem; /* Smaller icon for back button */
+            padding: 8px; /* Add padding for easier tap */
+            border-radius: 50%; /* Make it circular */
+        }
+
+        .settings-button:hover, .home-screen-settings-button:hover, .back-button-top:hover {
+            color: #374151; /* Darker grey on hover */
+        }
+
+        /* Modal / Dialog Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #374151;
+        }
+
+        .modal-body label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            color: #4b5563;
+        }
+
+        .modal-body input[type="number"],
+        .modal-body input[type="color"] { /* Style for color input */
+            flex-grow: 1;
+            margin-left: 10px;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .modal-body input[type="color"] {
+            padding: 0; /* Color input has different sizing */
+            width: 50px; /* Adjust width for color picker */
+            height: 40px; /* Adjust height for color picker */
+            cursor: pointer;
+        }
+
+        .modal-body input[type="number"]:focus,
+        .modal-body input[type="color"]:focus {
+            border-color: var(--primary-color); /* Use custom property for focus border */
+            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.3); /* Dynamic shadow based on primary color */
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .modal-actions .button-cancel {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .modal-actions .button-cancel:hover {
+            background-color: #d1d5db;
+        }
+
+        .modal-actions .button-save {
+            background-color: var(--secondary-period-color); /* Green for save, consistent with break period */
+            color: white;
+        }
+
+        .modal-actions .button-save:hover {
+            background-color: #059669; /* Darker green on hover */
+        }
+
+        /* Custom Alert Dialog */
+        .custom-alert-dialog {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+        }
+
+        .custom-alert-dialog p {
+            font-size: 1.1rem;
+            margin-bottom: 24px;
+            color: #374151;
+        }
+
+        /* Home Screen specific styles */
+        #homeScreen .current-time {
+            font-size: 4rem; /* Made clock bigger */
+            font-weight: 600;
+            color: #4b5563;
+            margin-top: 20px; /* Adjusted margin for position */
+            margin-bottom: 40px;
+        }
+
+        #homeScreen .home-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+        }
+
+        #homeScreen .home-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            text-align: center;
+        }
+
+        #homeScreen .home-button:hover {
+            background-color: var(--primary-color-dark);
+            transform: translateY(-2px);
+        }
+
+        #homeScreen .home-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Records Screen specific styles */
+        #recordsScreen .records-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        #recordsScreen .records-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        #recordsScreen .records-time-unit-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        #recordsScreen .records-time-unit-buttons button {
+            background-color: #cbd5e1; /* Light grey */
+            color: #374151;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: background-color 0.3s ease;
+        }
+
+        #recordsScreen .records-time-unit-buttons button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        #recordsScreen .records-time-unit-buttons button:hover:not(.active) {
+            background-color: #a0aec0; /* Slightly darker */
+        }
+
+        .chart-scroll-container {
+            width: 100%;
+            overflow-x: auto; /* Enables horizontal scrolling */
+            max-width: 100%; /* Ensure it doesn't overflow its parent */
+            padding-bottom: 15px; /* Space for scrollbar */
+        }
+        #recordsChartCanvas {
+            width: 100% !important; /* Start with 100% and let Chart.js adjust based on its options */
+            height: 300px !important;
+            min-width: 380px; /* Minimum width to prevent excessive squeezing for daily view */
+        }
+
+        /* Progress Bar styles */
+        .progress-container {
+            width: 90%; /* Adjust width relative to card */
+            height: 12px;
+            background-color: #e5e7eb;
+            border-radius: 6px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%; /* Will be controlled by JS */
+            background-color: var(--primary-color);
+            border-radius: 6px;
+            transition: width 0.9s linear; /* Smooth transition for progress */
+        }
+    </style>
 </head>
 <body>
-  <audio id="alarm" src="alarm.mp3" preload="auto"></audio>
-  <div id="overlay"></div>
-  <div id="settingsDialog">
-    <h2>設定</h2>
-    <label>作業時間: <input id="workInput" type="number" /> 分</label>
-    <label>休憩時間: <input id="breakInput" type="number" /> 分</label>
-    <button id="saveSettings">保存</button>
-  </div>
-  <div id="container">
-    <div id="settingsBtn" class="material-icons">settings</div>
-    <div id="timer">25:00</div>
-    <button id="startPause" class="fab"><span class="material-icons" id="startIcon">play_arrow</span></button>
-    <button id="resetBtn" class="fab"><span class="material-icons">refresh</span></button>
-  </div>
+    <!-- Home Screen -->
+    <div id="homeScreen" class="screen">
+        <button id="homeScreenSettingsButton" class="home-screen-settings-button">
+            <i class="fas fa-cog"></i>
+        </button>
+        <div id="currentTimeDisplay" class="current-time"></div>
+        <div class="home-buttons">
+            <button id="focusButton" class="home-button">
+                <i class="fas fa-brain"></i> 集中する
+            </button>
+            <button id="viewRecordsButton" class="home-button">
+                <i class="fas fa-chart-bar"></i> 記録を見る
+            </button>
+        </div>
+    </div>
 
-  <script>
-  (() => {
-    const timerEl = document.getElementById('timer');
-    const startBtn = document.getElementById('startPause');
-    const startIcon = document.getElementById('startIcon');
-    const resetBtn = document.getElementById('resetBtn');
-    const settingsBtn = document.getElementById('settingsBtn');
-    const dialog = document.getElementById('settingsDialog');
-    const overlay = document.getElementById('overlay');
-    const workInput = document.getElementById('workInput');
-    const breakInput = document.getElementById('breakInput');
-    const saveBtn = document.getElementById('saveSettings');
-    const alarm = document.getElementById('alarm');
+    <!-- Timer Screen -->
+    <div id="timerScreen" class="screen hidden">
+        <!-- Back Button - Only visible when timer is not running -->
+        <button id="backToHomeFromTimerButton" class="back-button-top">
+            <i class="fas fa-arrow-left"></i>
+        </button>
 
-    let workMinutes = parseInt(localStorage.getItem('work')) || 25;
-    let breakMinutes = parseInt(localStorage.getItem('break')) || 5;
-    let isWork = true;
-    let remaining = parseInt(localStorage.getItem('pausedRemaining')) || workMinutes * 60;
-    let timerID = null;
+        <!-- Session Time Display -->
+        <div id="currentSessionWorkTime" class="text-xl font-medium text-gray-700 mt-4">集中: 0分</div>
+        <div id="currentSessionBreakTime" class="text-xl font-medium text-gray-700 mt-2">休憩: 0分</div>
 
-    const updateDisplay = () => {
-      const m = String(Math.floor(remaining / 60)).padStart(2,'0');
-      const s = String(remaining % 60).padStart(2,'0');
-      timerEl.textContent = `${m}:${s}`;
-    };
-    updateDisplay();
+        <!-- Timer Display -->
+        <div id="timerDisplay" class="timer-display">25:00</div>
 
-    const tick = () => {
-      if (remaining > 0) {
-        remaining--; updateDisplay();
-      } else {
-        clearInterval(timerID);
-        alarm.play();
-        const mode = isWork ? '作業' : '休憩';
-        const action = isWork ? '休憩' : '集中';
-        const msg = `${mode}時間が終わりました！\n終了するにはキャンセルかいいえ、${action}するにはOKかはいを押してください！`;
-        if (confirm(msg)) {
-          isWork = !isWork;
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div id="progressBarFill" class="progress-bar"></div>
+        </div>
+
+        <!-- Buttons Group -->
+        <div class="button-group">
+            <!-- Start/Pause Button -->
+            <button id="startButton" class="button-primary">
+                <i class="fas fa-play" id="startButtonIcon"></i>
+                <span id="startButtonText">スタート</span>
+            </button>
+            <!-- Save Button - Only visible when timer is running -->
+            <button id="saveProgressButton" class="button-secondary hidden">
+                <i class="fas fa-save"></i> 保存
+            </button>
+        </div>
+    </div>
+
+    <!-- Records Screen -->
+    <div id="recordsScreen" class="screen hidden">
+        <div class="records-header">
+            <button id="backToHomeFromRecordsButton" class="back-button-top">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>記録</h2>
+        </div>
+        <div class="records-time-unit-buttons">
+            <button id="dailyViewButton" class="active">日単位</button>
+            <button id="monthlyViewButton">月単位</button>
+            <button id="yearlyViewButton">年単位</button>
+        </div>
+        <div class="chart-scroll-container">
+            <canvas id="recordsChartCanvas"></canvas>
+        </div>
+        <p id="noDataMessage" class="text-gray-600 mt-4 hidden">まだ記録がありません。</p>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="modal-header">設定</h2>
+            <div class="modal-body">
+                <label>
+                    作業時間:
+                    <input type="number" id="workTimeInput" min="5" value="25">分
+                </label>
+                <label>
+                    休憩時間:
+                    <input type="number" id="breakTimeInput" min="1" value="5">分
+                </label>
+                <label>
+                    テーマカラー:
+                    <input type="color" id="themeColorInput" value="#ef4444">
+                </label>
+                <label class="flex-col items-start mt-4">
+                    時計表示形式:
+                    <div class="flex items-center mt-2">
+                        <input type="radio" id="clockFormat24" name="clockFormat" value="24" class="mr-1"> <span class="text-base">24時間</span>
+                        <input type="radio" id="clockFormat12" name="clockFormat" value="12" class="ml-6 mr-1"> <span class="text-base">12時間</span>
+                    </div>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="button-cancel" id="cancelSettingsButton">キャンセル</button>
+                <button class="button-save" id="saveSettingsButton">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Confirm Dialog -->
+    <div id="customAlertDialog" class="modal-overlay hidden">
+        <div class="custom-alert-dialog">
+            <p id="alertMessage"></p>
+            <div class="modal-actions justify-center">
+                <button class="button-cancel" id="alertCancelButton">いいえ</button>
+                <button class="button-save" id="alertOkButton">はい</button>
+            </div>
+        </div>
+    </div>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/tone.min.js"></script>
+
+    <script>
+        // --- DOM Elements ---
+        const homeScreen = document.getElementById('homeScreen');
+        const timerScreen = document.getElementById('timerScreen');
+        const recordsScreen = document.getElementById('recordsScreen');
+        const focusButton = document.getElementById('focusButton');
+        const viewRecordsButton = document.getElementById('viewRecordsButton');
+        const backToHomeFromTimerButton = document.getElementById('backToHomeFromTimerButton');
+        const backToHomeFromRecordsButton = document.getElementById('backToHomeFromRecordsButton');
+        const noDataMessage = document.getElementById('noDataMessage');
+        const homeScreenSettingsButton = document.getElementById('homeScreenSettingsButton');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+
+        const timerDisplay = document.getElementById('timerDisplay');
+        const startButton = document.getElementById('startButton');
+        const startButtonIcon = document.getElementById('startButtonIcon');
+        const startButtonText = document.getElementById('startButtonText');
+        const saveProgressButton = document.getElementById('saveProgressButton'); // New Save button element
+        const settingsModal = document.getElementById('settingsModal');
+        const workTimeInput = document.getElementById('workTimeInput');
+        const breakTimeInput = document.getElementById('breakTimeInput');
+        const themeColorInput = document.getElementById('themeColorInput');
+        const clockFormat24 = document.getElementById('clockFormat24');
+        const clockFormat12 = document.getElementById('clockFormat12');
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+        const cancelSettingsButton = document.getElementById('cancelSettingsButton');
+
+        const customAlertDialog = document.getElementById('customAlertDialog');
+        const alertMessage = document.getElementById('alertMessage');
+        let alertOkButton = document.getElementById('alertOkButton');
+        let alertCancelButton = document.getElementById('alertCancelButton');
+
+        // Progress bar elements
+        const progressBarFill = document.getElementById('progressBarFill');
+
+        // Session time display elements
+        const currentSessionWorkTime = document.getElementById('currentSessionWorkTime');
+        const currentSessionBreakTime = document.getElementById('currentSessionBreakTime');
+
+        const recordsChartCanvas = document.getElementById('recordsChartCanvas');
+        let recordsChart; // To hold the Chart.js instance
+
+        // Records time unit buttons
+        const dailyViewButton = document.getElementById('dailyViewButton');
+        const monthlyViewButton = document.getElementById('monthlyViewButton');
+        const yearlyViewButton = document.getElementById('yearlyViewButton');
+
+        // --- Variables ---
+        let workTime = parseInt(localStorage.getItem('pomodoroWorkTime') || '25');
+        let breakTime = parseInt(localStorage.getItem('pomodoroBreakTime') || '5');
+        let themeColor = localStorage.getItem('pomodoroThemeColor') || '#ef4444';
+        let clockFormat = localStorage.getItem('pomodoroClockFormat') || '24'; // '24' or '12'
+        let currentTimeInSeconds = workTime * 60;
+        let totalPeriodSeconds = workTime * 60; // Total seconds for the current period
+        let isRunning = false;
+        let timerInterval = null; // Initialize to null
+        let isWorkPeriod = true; // true for work, false for break
+        let currentTimeInterval = null; // For home screen clock
+
+        // Session accumulated times (reset on full cycle completion or manual save)
+        let sessionFocusedMinutes = 0;
+        let sessionBreakMinutes = 0;
+
+        const RECORDS_KEY = 'pomodoroRecords';
+        let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
+
+        // --- Audio ---
+        let synth; // Declare synth here to make it globally accessible but not initialized yet
+        // Initialize Tone.js synth only when the first sound is played
+        function playAlarmSound() {
+            // Lazy initialization of synth
+            if (!synth) {
+                try {
+                    if (typeof Tone !== 'undefined') {
+                        synth = new Tone.Synth().toDestination();
+                        Tone.start().then(() => {
+                            console.log("Tone.js audio context started on first sound attempt.");
+                            synth.triggerAttackRelease("C4", "8n"); // Play sound immediately after context starts
+                        }).catch(e => {
+                            console.error("Tone.js audio context failed to start on sound attempt:", e);
+                        });
+                    } else {
+                        console.error("Tone.js library not loaded when attempting to play sound.");
+                    }
+                } catch (e) {
+                    console.error("Error initializing Tone.js synth on demand:", e);
+                }
+            } else {
+                synth.triggerAttackRelease("C4", "8n");
+            }
         }
-        localStorage.setItem(isWork ? 'work' : 'break', isWork ? workMinutes : breakMinutes);
-        remaining = (isWork ? workMinutes : breakMinutes) * 60;
-        toggleTimer();
-      }
-    };
 
-    const startTimer = () => {
-      timerID = setInterval(tick, 1000);
-      startIcon.textContent = 'pause';
-      settingsBtn.style.visibility = 'hidden';
-    };
-    const pauseTimer = () => {
-      clearInterval(timerID);
-      startIcon.textContent = 'play_arrow';
-      settingsBtn.style.visibility = 'visible';
-      localStorage.setItem('pausedRemaining', remaining);
-    };
-    const resetTimer = () => {
-      clearInterval(timerID);
-      isWork = true;
-      remaining = workMinutes * 60;
-      updateDisplay();
-      startIcon.textContent = 'play_arrow';
-      settingsBtn.style.visibility = 'visible';
-      localStorage.removeItem('pausedRemaining');
-    };
+        // --- Utility Functions ---
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
 
-    const toggleTimer = () => {
-      timerID ? pauseTimer() : startTimer();
-    };
+        function setThemeColors(color) {
+            document.documentElement.style.setProperty('--primary-color', color);
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            const darkerColor = `rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`;
+            document.documentElement.style.setProperty('--primary-color-dark', darkerColor);
+            document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
 
-    startBtn.addEventListener('click', toggleTimer);
-    resetBtn.addEventListener('click', resetTimer);
+            // Update chart colors immediately if chart exists
+            if (recordsChart) {
+                // Ensure to re-fetch computed styles as they might have changed
+                const primaryColorCss = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                const breakColorCss = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
+                recordsChart.data.datasets[0].backgroundColor = primaryColorCss;
+                recordsChart.data.datasets[1].backgroundColor = breakColorCss;
+                recordsChart.update();
+            }
+        }
 
-    settingsBtn.addEventListener('click', () => {
-      dialog.classList.add('active');
-      overlay.classList.add('active');
-      workInput.value = workMinutes;
-      breakInput.value = breakMinutes;
-    });
-    saveBtn.addEventListener('click', () => {
-      workMinutes = parseInt(workInput.value) || workMinutes;
-      breakMinutes = parseInt(breakInput.value) || breakMinutes;
-      localStorage.setItem('work', workMinutes);
-      localStorage.setItem('break', breakMinutes);
-      remaining = workMinutes * 60;
-      updateDisplay();
-      dialog.classList.remove('active');
-      overlay.classList.remove('active');
-    });
-  })();
-  </script>
+        function updateDisplay() {
+            timerDisplay.textContent = formatTime(currentTimeInSeconds);
+            if (isWorkPeriod) {
+                timerDisplay.style.color = 'var(--primary-color)';
+                totalPeriodSeconds = workTime * 60;
+            } else {
+                timerDisplay.style.color = 'var(--secondary-period-color)';
+                totalPeriodSeconds = breakTime * 60;
+            }
+
+            // Update progress bar
+            const progressPercentage = ((totalPeriodSeconds - currentTimeInSeconds) / totalPeriodSeconds) * 100;
+            progressBarFill.style.width = `${progressPercentage}%`;
+            progressBarFill.style.backgroundColor = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
+
+            // Update button visibility based on timer running state
+            updateTimerButtonVisibility();
+
+            // Update session focused/break time display
+            let displayWorkMins = sessionFocusedMinutes;
+            let displayBreakMins = sessionBreakMinutes;
+
+            // If timer is running or paused, calculate elapsed time for the current period
+            // and add it to the session totals for display purposes.
+            if (isRunning || timerInterval !== null) { // If timer has been started at least once
+                const elapsedSecondsThisPeriod = (totalPeriodSeconds - currentTimeInSeconds);
+                const elapsedMinutesThisPeriod = Math.floor(elapsedSecondsThisPeriod / 60); // Use floor for real-time display
+
+                if (isWorkPeriod) {
+                    displayWorkMins += elapsedMinutesThisPeriod;
+                } else {
+                    displayBreakMins += elapsedMinutesThisPeriod;
+                }
+            }
+
+            currentSessionWorkTime.textContent = `集中: ${displayWorkMins}分`;
+            currentSessionBreakTime.textContent = `休憩: ${displayBreakMins}分`;
+        }
+
+        function updateTimerButtonVisibility() {
+            // Show save button if timer is running OR if it was started and is now paused
+            if (isRunning || timerInterval !== null) {
+                saveProgressButton.classList.remove('hidden');
+                backToHomeFromTimerButton.classList.add('hidden');
+            } else { // Timer is completely stopped/reset (timerInterval is null)
+                saveProgressButton.classList.add('hidden');
+                backToHomeFromTimerButton.classList.remove('hidden');
+            }
+        }
+
+        // --- Local Storage Management for Records ---
+        function getRecords() {
+            try {
+                const recordsJson = localStorage.getItem(RECORDS_KEY);
+                return recordsJson ? JSON.parse(recordsJson) : [];
+            } catch (e) {
+                console.error("Error parsing records from localStorage", e);
+                return [];
+            }
+        }
+
+        function saveRecords(records) {
+            try {
+                localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+            } catch (e) {
+                console.error("Error saving records to localStorage", e);
+            }
+        }
+
+        function addRecord(type, durationMinutes) {
+            // Only add record if durationMinutes is a positive number
+            if (durationMinutes <= 0 || isNaN(durationMinutes)) {
+                return;
+            }
+
+            const today = new Date().toISOString().slice(0, 10); //YYYY-MM-DD
+            const records = getRecords();
+            let recordFound = false;
+
+            for (let i = 0; i < records.length; i++) {
+                if (records[i].date === today) {
+                    if (type === 'work') {
+                        records[i].workMinutes = (records[i].workMinutes || 0) + durationMinutes;
+                    } else if (type === 'break') {
+                        records[i].breakMinutes = (records[i].breakMinutes || 0) + durationMinutes;
+                    }
+                    recordFound = true;
+                    break;
+                }
+            }
+
+            if (!recordFound) {
+                const newRecord = { date: today, workMinutes: 0, breakMinutes: 0 };
+                if (type === 'work') {
+                    newRecord.workMinutes = durationMinutes;
+                } else if (type === 'break') {
+                    newRecord.breakMinutes = durationMinutes;
+                }
+                records.push(newRecord);
+            }
+
+            records.sort((a, b) => new Date(a.date) - new Date(b.date));
+            saveRecords(records);
+        }
+
+        // --- Timer Logic ---
+        function startTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                startButtonIcon.classList.remove('fa-pause');
+                startButtonIcon.classList.add('fa-play');
+                startButtonText.textContent = 'スタート';
+                // updateTimerButtonVisibility() is called by updateDisplay()
+            } else {
+                isRunning = true;
+                startButtonIcon.classList.remove('fa-play');
+                startButtonIcon.classList.add('fa-pause');
+                startButtonText.textContent = '一時停止';
+                // updateTimerButtonVisibility() is called by updateDisplay()
+                timerInterval = setInterval(() => {
+                    currentTimeInSeconds--;
+                    updateDisplay();
+
+                    if (currentTimeInSeconds <= 0) {
+                        playAlarmSound();
+                        clearInterval(timerInterval);
+
+                        // Add full period duration to session totals and daily records
+                        const completedMinutes = isWorkPeriod ? workTime : breakTime;
+                        if (isWorkPeriod) {
+                            sessionFocusedMinutes += completedMinutes;
+                        } else {
+                            sessionBreakMinutes += completedMinutes;
+                        }
+                        addRecord(isWorkPeriod ? 'work' : 'break', completedMinutes);
+
+                        if (isWorkPeriod) {
+                            isWorkPeriod = false;
+                            currentTimeInSeconds = breakTime * 60;
+                            totalPeriodSeconds = breakTime * 60;
+                            timerDisplay.style.color = 'var(--secondary-period-color)';
+                            updateDisplay(); // Update display immediately for color change
+                            startTimer(); // Start break timer
+                        } else {
+                            // Break period finished, go back to work period, but paused
+                            resetTimer(); // Resets to initial work period state and clears session totals
+                            showCustomAlertDialog('休憩が終了しました。新しい作業を開始しますか？', () => {
+                                // User clicked 'はい', do nothing, timer is already reset and paused
+                            }, () => {
+                                // User clicked 'いいえ', do nothing, timer is already reset and paused
+                            });
+                        }
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null; // Explicitly set to null to indicate timer is fully stopped
+            isRunning = false;
+            isWorkPeriod = true; // Always reset to work period
+            currentTimeInSeconds = workTime * 60; // Reset to configured work time
+            
+            // Reset session totals
+            sessionFocusedMinutes = 0;
+            sessionBreakMinutes = 0;
+
+            updateDisplay(); // This will update timer display and session times
+            startButtonIcon.classList.remove('fa-pause');
+            startButtonIcon.classList.add('fa-play');
+            startButtonText.textContent = 'スタート';
+            progressBarFill.style.width = `0%`; // Reset progress bar visual
+            progressBarFill.style.backgroundColor = 'var(--primary-color)'; // Ensure work color
+            // updateTimerButtonVisibility() is called by updateDisplay()
+        }
+
+
+        // --- Home Screen Clock ---
+        function updateCurrentTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            let period = ''; // For AM/PM
+
+            if (clockFormat === '12') {
+                period = hours >= 12 ? ' PM' : ' AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // The hour '0' should be '12'
+            }
+            hours = String(hours).padStart(2, '0'); // Ensure two digits for 24-hour format
+
+            currentTimeDisplay.textContent = `${hours}:${minutes}${period}`;
+        }
+
+        // --- UI Navigation ---
+        function showScreen(screenId) {
+            homeScreen.classList.add('hidden');
+            timerScreen.classList.add('hidden');
+            recordsScreen.classList.add('hidden');
+
+            // Clear current time interval if leaving home screen
+            if (screenId !== 'homeScreen' && currentTimeInterval !== null) {
+                clearInterval(currentTimeInterval);
+                currentTimeInterval = null; // Ensure interval ID is reset to null
+            }
+
+            document.getElementById(screenId).classList.remove('hidden');
+
+            if (screenId === 'recordsScreen') {
+                renderRecordsChart();
+            } else if (screenId === 'timerScreen') {
+                updateDisplay(); // This will also update button visibility
+                // If returning to timer screen when it's not running, ensure it's reset
+                if (!isRunning && timerInterval === null) {
+                    resetTimer(); // This also triggers updateDisplay
+                }
+            } else if (screenId === 'homeScreen') {
+                // Restart current time interval when entering home screen
+                if (currentTimeInterval === null) {
+                    currentTimeInterval = setInterval(updateCurrentTime, 1000);
+                }
+                updateCurrentTime(); // Initial update immediately, crucial for instant display
+            }
+        }
+
+        // --- Modals / Dialogs ---
+        // Global variables to store the current handler functions for the custom alert dialog
+        let currentOkHandler = null;
+        let currentCancelHandler = null;
+
+        function showCustomAlertDialog(message, onOk, onCancel) {
+            alertMessage.textContent = message;
+            customAlertDialog.classList.remove('hidden');
+
+            // Remove any previously attached listeners *before* defining and attaching new ones
+            if (currentOkHandler) {
+                alertOkButton.removeEventListener('click', currentOkHandler);
+            }
+            if (currentCancelHandler) {
+                alertCancelButton.removeEventListener('click', currentCancelHandler);
+            }
+
+            // Define the new handler functions based on the current onOk and onCancel callbacks
+            const newHandleOk = () => {
+                customAlertDialog.classList.add('hidden');
+                if (onOk) onOk();
+            };
+
+            const newHandleCancel = () => {
+                customAlertDialog.classList.add('hidden');
+                if (onCancel) onCancel();
+            };
+
+            // Store the new handlers in the global variables
+            currentOkHandler = newHandleOk;
+            currentCancelHandler = newHandleCancel;
+
+            // Attach the new handlers
+            alertOkButton.addEventListener('click', currentOkHandler);
+            alertCancelButton.addEventListener('click', currentCancelHandler);
+        }
+
+        // --- Chart.js Integration ---
+        function getAggregatedRecords(timeUnit) {
+            const rawRecords = getRecords();
+            const aggregated = {};
+
+            rawRecords.forEach(record => {
+                let key;
+                const date = new Date(record.date);
+                if (timeUnit === 'day') {
+                    key = record.date; //YYYY-MM-DD
+                } else if (timeUnit === 'month') {
+                    key = date.getFullYear().toString() + '-' + String(date.getMonth() + 1).padStart(2, '0'); //YYYY-MM
+                } else if (timeUnit === 'year') {
+                    key = date.getFullYear().toString(); //YYYY
+                }
+
+                if (!aggregated[key]) {
+                    aggregated[key] = { workMinutes: 0, breakMinutes: 0 };
+                }
+                aggregated[key].workMinutes += (record.workMinutes || 0);
+                aggregated[key].breakMinutes += (record.breakMinutes || 0);
+            });
+
+            // Sort keys to ensure chronological order for charts
+            const labels = Object.keys(aggregated).sort();
+            const workData = labels.map(key => aggregated[key].workMinutes);
+            const breakData = labels.map(key => aggregated[key].breakMinutes);
+
+            return { labels, workData, breakData };
+        }
+
+        function getChartTitleForUnit(unit) {
+            switch (unit) {
+                case 'day': return '日ごとの集中と休憩の時間';
+                case 'month': return '月ごとの集中と休憩の時間';
+                case 'year': return '年ごとの集中と休憩の時間';
+                default: return '集中と休憩の時間';
+            }
+        }
+
+        function getXAxisTitleForUnit(unit) {
+            switch (unit) {
+                case 'day': return '日付';
+                case 'month': return '月';
+                case 'year': return '年';
+                default: return '';
+            }
+        }
+
+        function renderRecordsChart() {
+            const { labels, workData, breakData } = getAggregatedRecords(currentChartTimeUnit);
+
+            if (labels.length === 0) {
+                recordsChartCanvas.classList.add('hidden');
+                noDataMessage.classList.remove('hidden');
+                if (recordsChart) {
+                    recordsChart.destroy(); // Destroy existing chart if no data
+                    recordsChart = null; // Clear reference
+                }
+                return;
+            } else {
+                recordsChartCanvas.classList.remove('hidden');
+                noDataMessage.classList.add('hidden');
+            }
+
+            // Get dynamic colors from CSS variables
+            const primaryColorCss = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+            const breakColorCss = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
+
+            if (recordsChart) {
+                recordsChart.destroy(); // Destroy previous chart instance before creating a new one
+            }
+
+            const ctx = recordsChartCanvas.getContext('2d');
+            recordsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '集中時間 (分)',
+                            data: workData,
+                            backgroundColor: primaryColorCss, // Use the dynamic primary color
+                            borderRadius: 4,
+                        },
+                        {
+                            label: '休憩時間 (分)',
+                            data: breakData,
+                            backgroundColor: breakColorCss, // Use the dynamic secondary color (break)
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${getChartTitleForUnit(currentChartTimeUnit)}`, // Dynamic title based on unit
+                            font: {
+                                size: 16,
+                                family: 'Inter', // Set font to Inter
+                            },
+                            color: '#374151',
+                        },
+                        legend: {
+                            labels: {
+                                font: {
+                                    family: 'Inter', // Set font to Inter
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: false, // Changed to false for side-by-side bars
+                            title: {
+                                display: true,
+                                text: getXAxisTitleForUnit(currentChartTimeUnit),
+                                font: {
+                                    family: 'Inter', // Set font to Inter
+                                },
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter', // Set font to Inter
+                                }
+                            }
+                        },
+                        y: {
+                            stacked: false, // Changed to false for side-by-side bars
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '時間 (分)',
+                                font: {
+                                    family: 'Inter', // Set font to Inter
+                                },
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter', // Set font to Inter
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply initial theme colors
+            setThemeColors(themeColor);
+            // Show home screen and start clock
+            showScreen('homeScreen');
+        });
+
+        focusButton.addEventListener('click', () => {
+            // Always reset timer when starting a new focus session
+            resetTimer(); 
+            showScreen('timerScreen');
+        });
+
+        viewRecordsButton.addEventListener('click', () => {
+            showScreen('recordsScreen');
+        });
+
+        // This button now only shows if the timer is NOT running.
+        backToHomeFromTimerButton.addEventListener('click', () => {
+            showScreen('homeScreen');
+        });
+
+        backToHomeFromRecordsButton.addEventListener('click', () => {
+            showScreen('homeScreen');
+        });
+
+        startButton.addEventListener('click', startTimer);
+        
+        saveProgressButton.addEventListener('click', () => {
+            // Calculate elapsed time in minutes for the current period
+            let elapsedSecondsThisPeriod;
+            let currentPeriodType;
+
+            // Determine elapsed time based on current period type and remaining time
+            if (isWorkPeriod) {
+                // If it's a work period, elapsed time is initial work time minus remaining time
+                elapsedSecondsThisPeriod = (workTime * 60) - currentTimeInSeconds;
+                currentPeriodType = 'work';
+            } else {
+                // If it's a break period, elapsed time is initial break time minus remaining time
+                elapsedSecondsThisPeriod = (breakTime * 60) - currentTimeInSeconds;
+                currentPeriodType = 'break';
+            }
+            
+            // Round elapsed minutes to the nearest whole minute for recording
+            const elapsedMinutesThisPeriod = Math.round(elapsedSecondsThisPeriod / 60);
+
+            // Add the elapsed time to session totals
+            if (currentPeriodType === 'work') {
+                sessionFocusedMinutes += elapsedMinutesThisPeriod;
+            } else {
+                sessionBreakMinutes += elapsedMinutesThisPeriod;
+            }
+
+            // Add record for the elapsed time to daily history
+            addRecord(currentPeriodType, elapsedMinutesThisPeriod);
+            
+            showCustomAlertDialog('現在のセッションを保存しました。', () => {
+                resetTimer(); // Reset timer after saving (this will clear session totals and show back button)
+            }, () => {
+                resetTimer(); // Reset timer even if "いいえ" is clicked (this will clear session totals and show back button)
+            });
+        });
+
+
+        homeScreenSettingsButton.addEventListener('click', () => {
+            workTimeInput.value = workTime;
+            breakTimeInput.value = breakTime;
+            themeColorInput.value = themeColor;
+            // Set clock format radio button based on current setting
+            if (clockFormat === '12') {
+                clockFormat12.checked = true;
+            } else {
+                clockFormat24.checked = true;
+            }
+            settingsModal.classList.remove('hidden');
+        });
+
+        cancelSettingsButton.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+
+        saveSettingsButton.addEventListener('click', () => {
+            const newWorkTime = parseInt(workTimeInput.value);
+            const newBreakTime = parseInt(breakTimeInput.value);
+            const newThemeColor = themeColorInput.value;
+            const newClockFormat = document.querySelector('input[name="clockFormat"]:checked').value;
+
+
+            // Basic validation
+            if (isNaN(newWorkTime) || newWorkTime < 5) {
+                showCustomAlertDialog('作業時間は5分以上である必要があります。', null, null);
+                return;
+            }
+            if (isNaN(newBreakTime) || newBreakTime < 1) {
+                showCustomAlertDialog('休憩時間は1分以上である必要があります。', null, null);
+                return;
+            }
+
+            workTime = newWorkTime;
+            breakTime = newBreakTime;
+            themeColor = newThemeColor;
+            clockFormat = newClockFormat; // Update the clock format variable
+
+            localStorage.setItem('pomodoroWorkTime', workTime);
+            localStorage.setItem('pomodoroBreakTime', breakTime);
+            localStorage.setItem('pomodoroThemeColor', themeColor);
+            localStorage.setItem('pomodoroClockFormat', clockFormat); // Save clock format
+
+            setThemeColors(themeColor); // Apply new theme color immediately
+            resetTimer(); // Reset timer with new settings (applies new work/break times)
+            updateCurrentTime(); // Update home screen clock with new format
+            settingsModal.classList.add('hidden');
+        });
+
+        // Event listeners for records time unit buttons
+        dailyViewButton.addEventListener('click', () => {
+            currentChartTimeUnit = 'day';
+            dailyViewButton.classList.add('active');
+            monthlyViewButton.classList.remove('active');
+            yearlyViewButton.classList.remove('active');
+            renderRecordsChart();
+        });
+
+        monthlyViewButton.addEventListener('click', () => {
+            currentChartTimeUnit = 'month';
+            dailyViewButton.classList.remove('active');
+            monthlyViewButton.classList.add('active');
+            yearlyViewButton.classList.remove('active');
+            renderRecordsChart();
+        });
+
+        yearlyViewButton.addEventListener('click', () => {
+            currentChartTimeUnit = 'year';
+            dailyViewButton.classList.remove('active');
+            monthlyViewButton.classList.remove('active');
+            yearlyViewButton.classList.add('active');
+            renderRecordsChart();
+        });
+    </script>
 </body>
 </html>
