@@ -755,6 +755,8 @@ function addRecord(type, durationMinutes) {
 }
 
 // --- Timer Logic ---
+// ... (既存のコード) ...
+
 function startTimer() {
     // Attempt to unlock audio when the start button is clicked
     unlockAudio();
@@ -782,34 +784,44 @@ function startTimer() {
                 clearInterval(timerInterval);
                 timerInterval = null;
 
-                const completedMinutes = isWorkPeriod ? workTime : breakTime;
+                // 期間が終了した際に、その期間の完了時間を累計に加算
                 if (isWorkPeriod) {
-                    sessionFocusedSeconds += workTime * 60;
+                    sessionFocusedSeconds += workTime * 60; // 作業時間全体を累計
                 } else {
-                    sessionBreakSeconds += breakTime * 60;
+                    sessionBreakSeconds += breakTime * 60; // 休憩時間全体を累計
                 }
 
-                addRecord(isWorkPeriod ? 'work' : 'break', completedMinutes);
+                // --- ここから修正 ---
+                // 現在の期間の記録を保存
+                addRecord(isWorkPeriod ? 'work' : 'break', isWorkPeriod ? workTime : breakTime);
+                // --- 修正ここまで ---
 
                 if (isWorkPeriod) {
+                    // 作業期間が終了したら休憩期間へ
                     isWorkPeriod = false;
                     currentTimeInSeconds = breakTime * 60;
                     totalPeriodSeconds = breakTime * 60;
-                    startTimer(); // Automatically start break timer
+                    startTimer(); // 自動的に休憩タイマーを開始
                 } else {
-                    resetTimer(); // Reset for next work period
+                    // 休憩期間が終了したら、次の集中期間のためにリセット
+                    // リセットする前に現在のセッションの記録を保存
+                    // NOTE: sessionFocusedSeconds と sessionBreakSeconds は既に加算済みなので、
+                    // ここで再度 addRecord を呼ぶ必要はありません。
+                    // resetTimer() の中でセッション累計時間をリセットします。
+
+                    resetTimer(); // 次の作業期間のためにタイマーをリセット
                     showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
-                        // User clicked 'Yes', so implicitly start a new work session if they were focused
-                        // No need to explicitly start a timer here, as `resetTimer` sets up for a new work session
-                        // and they would click "スタート" again.
+                        // 'はい' を選択した場合、特に何もしない（タイマーは既にリセット済み）
                     }, () => {
-                        // User clicked 'No', just close the alert.
+                        // 'いいえ' を選択した場合
                     });
                 }
             }
         }, 1000);
     }
 }
+
+// ... (既存のコード) ...
 
 function resetTimer() {
     clearInterval(timerInterval);
@@ -818,6 +830,7 @@ function resetTimer() {
     isWorkPeriod = true;
     currentTimeInSeconds = workTime * 60;
 
+    // これらの変数がリセットされることが重要です
     sessionFocusedSeconds = 0;
     sessionBreakSeconds = 0;
 
