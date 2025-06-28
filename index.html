@@ -24,7 +24,7 @@
       border-radius: 8px;
       padding: 2rem;
       position: relative;
-      width: 280px;
+      width: 300px;
     }
     #timer {
       font-size: 3.5rem;
@@ -46,6 +46,12 @@
       cursor: pointer;
     }
     #startPause { position: relative; }
+    #resetBtn {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background-color: #B00020;
+    }
     #settingsBtn {
       position: absolute;
       top: 12px;
@@ -96,14 +102,15 @@
   <div id="overlay"></div>
   <div id="settingsDialog">
     <h2>設定</h2>
-    <label>作業時間: <input id="workInput" type="number" min="1" /> 分</label>
-    <label>休憩時間: <input id="breakInput" type="number" min="1" /> 分</label>
+    <label>作業時間: <input id="workInput" type="number" /> 分</label>
+    <label>休憩時間: <input id="breakInput" type="number" /> 分</label>
     <button id="saveSettings">保存</button>
   </div>
   <div id="container">
     <div id="settingsBtn" class="material-icons">settings</div>
     <div id="timer">25:00</div>
     <button id="startPause" class="fab"><span class="material-icons" id="startIcon">play_arrow</span></button>
+    <button id="resetBtn" class="fab"><span class="material-icons">refresh</span></button>
   </div>
 
   <script>
@@ -111,6 +118,7 @@
     const timerEl = document.getElementById('timer');
     const startBtn = document.getElementById('startPause');
     const startIcon = document.getElementById('startIcon');
+    const resetBtn = document.getElementById('resetBtn');
     const settingsBtn = document.getElementById('settingsBtn');
     const dialog = document.getElementById('settingsDialog');
     const overlay = document.getElementById('overlay');
@@ -161,12 +169,22 @@
       settingsBtn.style.visibility = 'visible';
       localStorage.setItem('pausedRemaining', remaining);
     };
+    const resetTimer = () => {
+      clearInterval(timerID);
+      isWork = true;
+      remaining = workMinutes * 60;
+      updateDisplay();
+      startIcon.textContent = 'play_arrow';
+      settingsBtn.style.visibility = 'visible';
+      localStorage.removeItem('pausedRemaining');
+    };
 
     const toggleTimer = () => {
       timerID ? pauseTimer() : startTimer();
     };
 
     startBtn.addEventListener('click', toggleTimer);
+    resetBtn.addEventListener('click', resetTimer);
 
     settingsBtn.addEventListener('click', () => {
       dialog.classList.add('active');
@@ -175,8 +193,8 @@
       breakInput.value = breakMinutes;
     });
     saveBtn.addEventListener('click', () => {
-      workMinutes = Math.max(5, parseInt(workInput.value));
-      breakMinutes = Math.max(1, parseInt(breakInput.value));
+      workMinutes = parseInt(workInput.value) || workMinutes;
+      breakMinutes = parseInt(breakInput.value) || breakMinutes;
       localStorage.setItem('work', workMinutes);
       localStorage.setItem('break', breakMinutes);
       remaining = workMinutes * 60;
