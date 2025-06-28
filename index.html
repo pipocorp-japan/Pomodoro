@@ -19,7 +19,6 @@
             --primary-color: #ef4444; /* Default Red */
             --primary-color-dark: #dc2626; /* Darker Red for hover */
             --secondary-period-color: #10b981; /* Green for break period */
-            /* Removed chart-work-color and chart-break-color from CSS as they will be dynamically set by JS using primary/secondary-period-color */
         }
 
         /* General Body and Screen Layout */
@@ -215,8 +214,6 @@
         .modal-body input[type="number"]:focus,
         .modal-body input[type="color"]:focus {
             border-color: var(--primary-color); /* Use custom property for focus border */
-            /* Dynamic shadow based on primary color is harder with pure CSS custom properties if not using JS to set RGB components directly */
-            /* For simplicity, use a generic shadow or rely on JS to set --primary-color-rgb */
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3); /* Example: a blue shadow, or dynamically set via JS */
         }
 
@@ -498,8 +495,10 @@
             </div>
         </div>
     </div>
-    <!-- Tone.js for sound effects -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/tone.min.js"></script>
+
+    <!-- アラーム音用のaudioタグを追加 -->
+    <!-- SoundHelix提供のサンプルMP3を使用しています。必要に応じてURLを置き換えてください。 -->
+    <audio id="alarmSound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="auto"></audio>
 
     <script>
         // --- DOM Elements ---
@@ -567,36 +566,19 @@
         const RECORDS_KEY = 'pomodoroRecords';
         let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
 
-        // --- Audio ---
-        let synth; // Declare synth here to make it globally accessible but not initialized yet
-        // Initialize Tone.js synth only when the first sound is played
+        // --- Audio (Tone.jsを置き換え) ---
+        const alarmSound = document.getElementById('alarmSound'); // audio要素を取得
+
         function playAlarmSound() {
-            // Lazy initialization of synth
-            if (!synth) {
-                try {
-                    if (typeof Tone !== 'undefined') {
-                        // Ensure Tone.js context is started
-                        if (Tone.context.state !== 'running') {
-                            Tone.start().then(() => {
-                                console.log("Tone.js audio context started.");
-                                synth = new Tone.Synth().toDestination();
-                                synth.triggerAttackRelease("C4", "8n"); // Play sound immediately after context starts
-                            }).catch(e => {
-                                console.error("Tone.js audio context failed to start:", e);
-                            });
-                        } else {
-                            synth = new Tone.Synth().toDestination();
-                            synth.triggerAttackRelease("C4", "8n");
-                        }
-                    } else {
-                        console.error("Tone.js library not loaded when attempting to play sound.");
-                    }
-                } catch (e) {
-                    console.error("Error initializing Tone.js synth on demand:", e);
-                }
-            } else {
-                synth.triggerAttackRelease("C4", "8n");
-            }
+            // 音量を設定（必要に応じて調整）
+            alarmSound.volume = 0.5; 
+            // 音を再生
+            alarmSound.play().catch(error => {
+                // 自動再生ポリシーなどで再生できなかった場合のハンドリング
+                console.warn("アラーム音の再生に失敗しました:", error);
+                // ユーザーに再生を促すメッセージなどを表示することも検討
+                // 例: showCustomAlertDialog('アラーム音の再生には、一度ページをクリックする必要があります。', () => {}, () => {});
+            });
         }
 
         // --- Utility Functions ---
@@ -633,12 +615,10 @@
             const b = parseInt(color.slice(5, 7), 16);
             const darkerColor = `rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`;
             document.documentElement.style.setProperty('--primary-color-dark', darkerColor);
-            // This CSS variable is not strictly necessary for the current setup but kept for potential future use or consistency.
             document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
 
             // Update chart colors immediately if chart exists
             if (recordsChart) {
-                // Ensure to re-fetch computed styles as they might have changed
                 const primaryColorCss = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
                 const breakColorCss = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
                 recordsChart.data.datasets[0].backgroundColor = primaryColorCss;
@@ -650,24 +630,16 @@
         function updateDisplay() {
             timerDisplay.textContent = formatTime(currentTimeInSeconds);
             
-            // Determine total seconds for the current period for accurate progress bar calculation
             totalPeriodSeconds = isWorkPeriod ? workTime * 60 : breakTime * 60;
 
-            // Update progress bar
-            // Ensure totalPeriodSeconds is not 0 to avoid division by zero
             const progressPercentage = totalPeriodSeconds > 0 ? ((totalPeriodSeconds - currentTimeInSeconds) / totalPeriodSeconds) * 100 : 0;
             progressBarFill.style.width = `${progressPercentage}%`;
             progressBarFill.style.backgroundColor = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
 
-            // Update timer display color
             timerDisplay.style.color = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
 
-            // Update button visibility based on timer running state
             updateTimerButtonVisibility();
 
-            // Update session focused/break time display
-            // Calculate elapsed time for the current period *only if the timer is running*.
-            // If paused, we don't add to current display unless it's already accrued.
             let displayWorkMins = Math.floor(sessionFocusedSeconds / 60);
             let displayBreakMins = Math.floor(sessionBreakSeconds / 60);
 
@@ -685,10 +657,10 @@
         }
 
         function updateTimerButtonVisibility() {
-            if (timerInterval !== null) { // Timer has been started (running or paused)
+            if (timerInterval !== null) {
                 saveProgressButton.classList.remove('hidden');
                 backToHomeFromTimerButton.classList.add('hidden');
-            } else { // Timer is fully stopped/reset
+            } else {
                 saveProgressButton.classList.add('hidden');
                 backToHomeFromTimerButton.classList.remove('hidden');
             }
@@ -714,12 +686,11 @@
         }
 
         function addRecord(type, durationMinutes) {
-            // Only add record if durationMinutes is a positive number
             if (durationMinutes <= 0 || isNaN(durationMinutes)) {
                 return;
             }
 
-            const today = new Date().toISOString().slice(0, 10); //YYYY-MM-DD
+            const today = new Date().toISOString().slice(0, 10);
             const records = getRecords();
             let recordFound = false;
 
@@ -745,7 +716,6 @@
                 records.push(newRecord);
             }
 
-            // Sort records by date to maintain chronological order
             records.sort((a, b) => new Date(a.date) - new Date(b.date));
             saveRecords(records);
         }
@@ -764,7 +734,6 @@
                 startButtonIcon.classList.add('fa-pause');
                 startButtonText.textContent = '一時停止';
                 
-                // Clear any existing interval before starting a new one
                 if (timerInterval) clearInterval(timerInterval);
 
                 timerInterval = setInterval(() => {
@@ -774,33 +743,26 @@
                     if (currentTimeInSeconds <= 0) {
                         playAlarmSound();
                         clearInterval(timerInterval);
-                        timerInterval = null; // Mark as null when timer finishes or is reset
+                        timerInterval = null;
 
-                        // Add the full period duration to the session totals
                         const completedMinutes = isWorkPeriod ? workTime : breakTime;
                         if (isWorkPeriod) {
-                            sessionFocusedSeconds += workTime * 60; // Add full work period
+                            sessionFocusedSeconds += workTime * 60;
                         } else {
-                            sessionBreakSeconds += breakTime * 60; // Add full break period
+                            sessionBreakSeconds += breakTime * 60;
                         }
 
-                        // Add record to storage based on the period just completed
                         addRecord(isWorkPeriod ? 'work' : 'break', completedMinutes);
 
                         if (isWorkPeriod) {
                             isWorkPeriod = false;
                             currentTimeInSeconds = breakTime * 60;
-                            totalPeriodSeconds = breakTime * 60; // Update total for progress bar
-                            // Automatically start break timer
-                            startTimer(); // This will immediately start the break timer
+                            totalPeriodSeconds = breakTime * 60;
+                            startTimer();
                         } else {
-                            // Break period finished, reset for next work period
-                            resetTimer(); // Resets to initial work period state and clears session totals
+                            resetTimer();
                             showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
-                                // User clicked 'はい', do nothing, timer is already reset and paused.
-                                // If they want to start, they will click "スタート"
                             }, () => {
-                                // User clicked 'いいえ', do nothing, timer is already reset and paused.
                             });
                         }
                     }
@@ -810,12 +772,11 @@
 
         function resetTimer() {
             clearInterval(timerInterval);
-            timerInterval = null; // Explicitly set to null to indicate timer is fully stopped
+            timerInterval = null;
             isRunning = false;
-            isWorkPeriod = true; // Always reset to work period
-            currentTimeInSeconds = workTime * 60; // Reset to configured work time
+            isWorkPeriod = true;
+            currentTimeInSeconds = workTime * 60;
             
-            // Reset session totals
             sessionFocusedSeconds = 0;
             sessionBreakSeconds = 0;
 
@@ -823,21 +784,18 @@
             startButtonIcon.classList.add('fa-play');
             startButtonText.textContent = 'スタート';
 
-            updateDisplay(); // This will update timer display and button visibility
+            updateDisplay();
         }
 
         function saveProgress() {
-            // Calculate the minutes elapsed in the current period
             const elapsedSecondsThisPeriod = totalPeriodSeconds - currentTimeInSeconds;
 
-            // Add the elapsed time from the current period to session totals
             if (isWorkPeriod) {
                 sessionFocusedSeconds += elapsedSecondsThisPeriod;
             } else {
                 sessionBreakSeconds += elapsedSecondsThisPeriod;
             }
 
-            // Save the total session times to records and reset the session
             if (sessionFocusedSeconds > 0) {
                 addRecord('work', Math.floor(sessionFocusedSeconds / 60));
             }
@@ -845,7 +803,7 @@
                 addRecord('break', Math.floor(sessionBreakSeconds / 60));
             }
 
-            resetTimer(); // Reset timer and session totals
+            resetTimer();
             showCustomAlertDialog('現在のセッションの集中時間と休憩時間を記録しました。', () => {}, () => {});
         }
 
@@ -858,11 +816,11 @@
             screenToShow.classList.remove('hidden');
 
             if (screenToShow === homeScreen) {
-                clearInterval(currentTimeInterval); // Clear existing interval to avoid duplicates
-                currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000); // Start home screen clock
-                updateCurrentTimeDisplay(); // Initial display
+                clearInterval(currentTimeInterval);
+                currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000);
+                updateCurrentTimeDisplay();
             } else {
-                clearInterval(currentTimeInterval); // Stop home screen clock when not on home screen
+                clearInterval(currentTimeInterval);
             }
 
             if (screenToShow === recordsScreen) {
@@ -871,7 +829,7 @@
         }
 
         // --- Custom Alert/Confirm Dialog Logic ---
-        let resolveAlertDialog; // To store the resolve function of the Promise
+        let resolveAlertDialog;
         function showCustomAlertDialog(message, onConfirm, onCancel) {
             alertMessage.textContent = message;
             customAlertDialog.classList.remove('hidden');
@@ -884,7 +842,7 @@
                     if (onConfirm) onConfirm();
                     alertOkButton.removeEventListener('click', handleOk);
                     alertCancelButton.removeEventListener('click', handleCancel);
-                    resolve(true); // Resolve with true for "Yes"
+                    resolve(true);
                 };
 
                 const handleCancel = () => {
@@ -892,7 +850,7 @@
                     if (onCancel) onCancel();
                     alertOkButton.removeEventListener('click', handleOk);
                     alertCancelButton.removeEventListener('click', handleCancel);
-                    resolve(false); // Resolve with false for "No"
+                    resolve(false);
                 };
 
                 alertOkButton.addEventListener('click', handleOk);
@@ -903,22 +861,21 @@
         // --- Event Listeners ---
         focusButton.addEventListener('click', () => {
             showScreen(timerScreen);
-            resetTimer(); // Ensure timer is reset when entering the screen
-            updateDisplay(); // Initial display update
+            resetTimer();
+            updateDisplay();
         });
 
         viewRecordsButton.addEventListener('click', () => {
             showScreen(recordsScreen);
-            renderChart(currentChartTimeUnit); // Render chart when navigating to records screen
+            renderChart(currentChartTimeUnit);
         });
 
         backToHomeFromTimerButton.addEventListener('click', () => {
-            if (isRunning || timerInterval !== null) { // If timer is running or paused
+            if (isRunning || timerInterval !== null) {
                 showCustomAlertDialog('タイマーが実行中または一時停止中です。進捗を破棄してホームに戻りますか？', () => {
                     resetTimer();
                     showScreen(homeScreen);
                 }, () => {
-                    // Do nothing, stay on timer screen
                 });
             } else {
                 showScreen(homeScreen);
@@ -933,7 +890,6 @@
         saveProgressButton.addEventListener('click', saveProgress);
 
         homeScreenSettingsButton.addEventListener('click', () => {
-            // Populate modal inputs with current settings
             workTimeInput.value = workTime;
             breakTimeInput.value = breakTime;
             themeColorInput.value = themeColor;
@@ -947,7 +903,6 @@
 
         cancelSettingsButton.addEventListener('click', () => {
             settingsModal.classList.add('hidden');
-            // Revert inputs to saved values if user cancels
             workTimeInput.value = workTime;
             breakTimeInput.value = breakTime;
             themeColorInput.value = themeColor;
@@ -969,7 +924,6 @@
                 return;
             }
 
-            // Only update if values have changed
             if (workTime !== newWorkTime) {
                 workTime = newWorkTime;
                 localStorage.setItem('pomodoroWorkTime', workTime);
@@ -981,26 +935,23 @@
             if (themeColor !== newThemeColor) {
                 themeColor = newThemeColor;
                 localStorage.setItem('pomodoroThemeColor', themeColor);
-                setThemeColors(themeColor); // Apply new theme color immediately
+                setThemeColors(themeColor);
             }
             if (clockFormat !== newClockFormat) {
                 clockFormat = newClockFormat;
                 localStorage.setItem('pomodoroClockFormat', clockFormat);
-                updateCurrentTimeDisplay(); // Update home screen clock format
+                updateCurrentTimeDisplay();
             }
             
-            // If the timer is not running or paused, reset it with new work time
             if (timerInterval === null) {
-                resetTimer(); // This will update currentTimeInSeconds and display
+                resetTimer();
             } else {
-                // If timer is running/paused, don't reset currentTimeInSeconds
-                // Just update totalPeriodSeconds if the period changes (e.g., from 25 to 30 mins work)
                 if (isWorkPeriod) {
                     totalPeriodSeconds = workTime * 60;
                 } else {
                     totalPeriodSeconds = breakTime * 60;
                 }
-                updateDisplay(); // Update display to reflect potential changes in progress bar if total time changed
+                updateDisplay();
             }
 
             settingsModal.classList.add('hidden');
@@ -1014,11 +965,11 @@
                 const date = new Date(record.date);
                 let key;
                 if (timeUnit === 'day') {
-                    key = record.date; // YYYY-MM-DD
+                    key = record.date;
                 } else if (timeUnit === 'month') {
-                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 } else if (timeUnit === 'year') {
-                    key = `${date.getFullYear()}`; // YYYY
+                    key = `${date.getFullYear()}`;
                 }
 
                 if (!dataMap.has(key)) {
@@ -1029,7 +980,6 @@
                 currentData.breakMinutes += (record.breakMinutes || 0);
             });
 
-            // Sort keys chronologically
             const sortedKeys = Array.from(dataMap.keys()).sort();
 
             const labels = [];
@@ -1051,7 +1001,7 @@
             const { labels, workData, breakData } = processRecordsForChart(records, timeUnit);
 
             if (recordsChart) {
-                recordsChart.destroy(); // Destroy previous chart instance
+                recordsChart.destroy();
             }
 
             if (labels.length === 0) {
@@ -1090,7 +1040,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // Allows height to be controlled by CSS
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             stacked: true,
@@ -1121,11 +1071,10 @@
                 }
             });
 
-            // Adjust canvas min-width for better display, especially for daily view
             if (timeUnit === 'day' && labels.length > 7) {
-                recordsChartCanvas.style.minWidth = `${labels.length * 50}px`; // Example: 50px per bar
+                recordsChartCanvas.style.minWidth = `${labels.length * 50}px`;
             } else {
-                recordsChartCanvas.style.minWidth = '380px'; // Default min-width
+                recordsChartCanvas.style.minWidth = '380px';
             }
         }
 
@@ -1155,27 +1104,15 @@
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            setThemeColors(themeColor); // Apply initial theme color
-            // Set initial radio button state
+            setThemeColors(themeColor);
             if (clockFormat === '24') {
                 clockFormat24.checked = true;
             } else {
                 clockFormat12.checked = true;
             }
-            updateDisplay(); // Initial timer display
-            showScreen(homeScreen); // Start on home screen
+            updateDisplay();
+            showScreen(homeScreen);
         });
-
-        // Ensure Tone.js context is running after user interaction
-        document.body.addEventListener('click', () => {
-            if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
-                Tone.start().then(() => {
-                    console.log("Tone.js audio context started on user interaction.");
-                }).catch(e => {
-                    console.error("Tone.js audio context failed to start on user interaction:", e);
-                });
-            }
-        }, { once: true }); // Only run once on the first click
     </script>
 </body>
 </html>
