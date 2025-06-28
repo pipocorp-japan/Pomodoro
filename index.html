@@ -19,8 +19,7 @@
             --primary-color: #ef4444; /* Default Red */
             --primary-color-dark: #dc2626; /* Darker Red for hover */
             --secondary-period-color: #10b981; /* Green for break period */
-            --chart-work-color: #3b82f6; /* Blue for work on chart (default for chart if not overridden)*/
-            --chart-break-color: #10b981; /* Green for break on chart (default for chart if not overridden)*/
+            /* Removed chart-work-color and chart-break-color from CSS as they will be dynamically set by JS using primary/secondary-period-color */
         }
 
         /* General Body and Screen Layout */
@@ -216,7 +215,9 @@
         .modal-body input[type="number"]:focus,
         .modal-body input[type="color"]:focus {
             border-color: var(--primary-color); /* Use custom property for focus border */
-            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.3); /* Dynamic shadow based on primary color */
+            /* Dynamic shadow based on primary color is harder with pure CSS custom properties if not using JS to set RGB components directly */
+            /* For simplicity, use a generic shadow or rely on JS to set --primary-color-rgb */
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3); /* Example: a blue shadow, or dynamically set via JS */
         }
 
         .modal-actions {
@@ -429,7 +430,7 @@
                 <i class="fas fa-play" id="startButtonIcon"></i>
                 <span id="startButtonText">スタート</span>
             </button>
-            <!-- Save Button - Only visible when timer is running -->
+            <!-- Save Button - Only visible when timer is running or paused -->
             <button id="saveProgressButton" class="button-secondary hidden">
                 <i class="fas fa-save"></i> 保存
             </button>
@@ -517,7 +518,7 @@
         const startButton = document.getElementById('startButton');
         const startButtonIcon = document.getElementById('startButtonIcon');
         const startButtonText = document.getElementById('startButtonText');
-        const saveProgressButton = document.getElementById('saveProgressButton'); // New Save button element
+        const saveProgressButton = document.getElementById('saveProgressButton');
         const settingsModal = document.getElementById('settingsModal');
         const workTimeInput = document.getElementById('workTimeInput');
         const breakTimeInput = document.getElementById('breakTimeInput');
@@ -557,11 +558,11 @@
         let isRunning = false;
         let timerInterval = null; // Initialize to null
         let isWorkPeriod = true; // true for work, false for break
-        let currentTimeInterval = null; // For home screen clock
+        let currentTimeInterval = null; // For home screen clock (global scope)
 
         // Session accumulated times (reset on full cycle completion or manual save)
-        let sessionFocusedMinutes = 0;
-        let sessionBreakMinutes = 0;
+        let sessionFocusedSeconds = 0; // Changed to seconds for more accurate tracking
+        let sessionBreakSeconds = 0; // Changed to seconds for more accurate tracking
 
         const RECORDS_KEY = 'pomodoroRecords';
         let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
@@ -574,13 +575,19 @@
             if (!synth) {
                 try {
                     if (typeof Tone !== 'undefined') {
-                        synth = new Tone.Synth().toDestination();
-                        Tone.start().then(() => {
-                            console.log("Tone.js audio context started on first sound attempt.");
-                            synth.triggerAttackRelease("C4", "8n"); // Play sound immediately after context starts
-                        }).catch(e => {
-                            console.error("Tone.js audio context failed to start on sound attempt:", e);
-                        });
+                        // Ensure Tone.js context is started
+                        if (Tone.context.state !== 'running') {
+                            Tone.start().then(() => {
+                                console.log("Tone.js audio context started.");
+                                synth = new Tone.Synth().toDestination();
+                                synth.triggerAttackRelease("C4", "8n"); // Play sound immediately after context starts
+                            }).catch(e => {
+                                console.error("Tone.js audio context failed to start:", e);
+                            });
+                        } else {
+                            synth = new Tone.Synth().toDestination();
+                            synth.triggerAttackRelease("C4", "8n");
+                        }
                     } else {
                         console.error("Tone.js library not loaded when attempting to play sound.");
                     }
@@ -599,6 +606,26 @@
             return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
         }
 
+        function formatCurrentTime(date) {
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const seconds = date.getSeconds();
+            let ampm = '';
+
+            if (clockFormat === '12') {
+                ampm = hours >= 12 ? ' PM' : ' AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // The hour '0' should be '12' in 12-hour format
+            }
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${ampm}`;
+        }
+
+        function updateCurrentTimeDisplay() {
+            const now = new Date();
+            currentTimeDisplay.textContent = formatCurrentTime(now);
+        }
+
         function setThemeColors(color) {
             document.documentElement.style.setProperty('--primary-color', color);
             const r = parseInt(color.slice(1, 3), 16);
@@ -606,6 +633,7 @@
             const b = parseInt(color.slice(5, 7), 16);
             const darkerColor = `rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`;
             document.documentElement.style.setProperty('--primary-color-dark', darkerColor);
+            // This CSS variable is not strictly necessary for the current setup but kept for potential future use or consistency.
             document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
 
             // Update chart colors immediately if chart exists
@@ -621,36 +649,34 @@
 
         function updateDisplay() {
             timerDisplay.textContent = formatTime(currentTimeInSeconds);
-            if (isWorkPeriod) {
-                timerDisplay.style.color = 'var(--primary-color)';
-                totalPeriodSeconds = workTime * 60;
-            } else {
-                timerDisplay.style.color = 'var(--secondary-period-color)';
-                totalPeriodSeconds = breakTime * 60;
-            }
+            
+            // Determine total seconds for the current period for accurate progress bar calculation
+            totalPeriodSeconds = isWorkPeriod ? workTime * 60 : breakTime * 60;
 
             // Update progress bar
-            const progressPercentage = ((totalPeriodSeconds - currentTimeInSeconds) / totalPeriodSeconds) * 100;
+            // Ensure totalPeriodSeconds is not 0 to avoid division by zero
+            const progressPercentage = totalPeriodSeconds > 0 ? ((totalPeriodSeconds - currentTimeInSeconds) / totalPeriodSeconds) * 100 : 0;
             progressBarFill.style.width = `${progressPercentage}%`;
             progressBarFill.style.backgroundColor = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
+
+            // Update timer display color
+            timerDisplay.style.color = isWorkPeriod ? 'var(--primary-color)' : 'var(--secondary-period-color)';
 
             // Update button visibility based on timer running state
             updateTimerButtonVisibility();
 
             // Update session focused/break time display
-            let displayWorkMins = sessionFocusedMinutes;
-            let displayBreakMins = sessionBreakMinutes;
+            // Calculate elapsed time for the current period *only if the timer is running*.
+            // If paused, we don't add to current display unless it's already accrued.
+            let displayWorkMins = Math.floor(sessionFocusedSeconds / 60);
+            let displayBreakMins = Math.floor(sessionBreakSeconds / 60);
 
-            // If timer is running or paused, calculate elapsed time for the current period
-            // and add it to the session totals for display purposes.
-            if (isRunning || timerInterval !== null) { // If timer has been started at least once
+            if (isRunning) {
                 const elapsedSecondsThisPeriod = (totalPeriodSeconds - currentTimeInSeconds);
-                const elapsedMinutesThisPeriod = Math.floor(elapsedSecondsThisPeriod / 60); // Use floor for real-time display
-
                 if (isWorkPeriod) {
-                    displayWorkMins += elapsedMinutesThisPeriod;
+                    displayWorkMins += Math.floor(elapsedSecondsThisPeriod / 60);
                 } else {
-                    displayBreakMins += elapsedMinutesThisPeriod;
+                    displayBreakMins += Math.floor(elapsedSecondsThisPeriod / 60);
                 }
             }
 
@@ -659,11 +685,10 @@
         }
 
         function updateTimerButtonVisibility() {
-            // Show save button if timer is running OR if it was started and is now paused
-            if (isRunning || timerInterval !== null) {
+            if (timerInterval !== null) { // Timer has been started (running or paused)
                 saveProgressButton.classList.remove('hidden');
                 backToHomeFromTimerButton.classList.add('hidden');
-            } else { // Timer is completely stopped/reset (timerInterval is null)
+            } else { // Timer is fully stopped/reset
                 saveProgressButton.classList.add('hidden');
                 backToHomeFromTimerButton.classList.remove('hidden');
             }
@@ -720,6 +745,7 @@
                 records.push(newRecord);
             }
 
+            // Sort records by date to maintain chronological order
             records.sort((a, b) => new Date(a.date) - new Date(b.date));
             saveRecords(records);
         }
@@ -732,13 +758,15 @@
                 startButtonIcon.classList.remove('fa-pause');
                 startButtonIcon.classList.add('fa-play');
                 startButtonText.textContent = 'スタート';
-                // updateTimerButtonVisibility() is called by updateDisplay()
             } else {
                 isRunning = true;
                 startButtonIcon.classList.remove('fa-play');
                 startButtonIcon.classList.add('fa-pause');
                 startButtonText.textContent = '一時停止';
-                // updateTimerButtonVisibility() is called by updateDisplay()
+                
+                // Clear any existing interval before starting a new one
+                if (timerInterval) clearInterval(timerInterval);
+
                 timerInterval = setInterval(() => {
                     currentTimeInSeconds--;
                     updateDisplay();
@@ -746,30 +774,33 @@
                     if (currentTimeInSeconds <= 0) {
                         playAlarmSound();
                         clearInterval(timerInterval);
+                        timerInterval = null; // Mark as null when timer finishes or is reset
 
-                        // Add full period duration to session totals and daily records
+                        // Add the full period duration to the session totals
                         const completedMinutes = isWorkPeriod ? workTime : breakTime;
                         if (isWorkPeriod) {
-                            sessionFocusedMinutes += completedMinutes;
+                            sessionFocusedSeconds += workTime * 60; // Add full work period
                         } else {
-                            sessionBreakMinutes += completedMinutes;
+                            sessionBreakSeconds += breakTime * 60; // Add full break period
                         }
+
+                        // Add record to storage based on the period just completed
                         addRecord(isWorkPeriod ? 'work' : 'break', completedMinutes);
 
                         if (isWorkPeriod) {
                             isWorkPeriod = false;
                             currentTimeInSeconds = breakTime * 60;
-                            totalPeriodSeconds = breakTime * 60;
-                            timerDisplay.style.color = 'var(--secondary-period-color)';
-                            updateDisplay(); // Update display immediately for color change
-                            startTimer(); // Start break timer
+                            totalPeriodSeconds = breakTime * 60; // Update total for progress bar
+                            // Automatically start break timer
+                            startTimer(); // This will immediately start the break timer
                         } else {
-                            // Break period finished, go back to work period, but paused
+                            // Break period finished, reset for next work period
                             resetTimer(); // Resets to initial work period state and clears session totals
-                            showCustomAlertDialog('休憩が終了しました。新しい作業を開始しますか？', () => {
-                                // User clicked 'はい', do nothing, timer is already reset and paused
+                            showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
+                                // User clicked 'はい', do nothing, timer is already reset and paused.
+                                // If they want to start, they will click "スタート"
                             }, () => {
-                                // User clicked 'いいえ', do nothing, timer is already reset and paused
+                                // User clicked 'いいえ', do nothing, timer is already reset and paused.
                             });
                         }
                     }
@@ -785,336 +816,146 @@
             currentTimeInSeconds = workTime * 60; // Reset to configured work time
             
             // Reset session totals
-            sessionFocusedMinutes = 0;
-            sessionBreakMinutes = 0;
+            sessionFocusedSeconds = 0;
+            sessionBreakSeconds = 0;
 
-            updateDisplay(); // This will update timer display and session times
             startButtonIcon.classList.remove('fa-pause');
             startButtonIcon.classList.add('fa-play');
             startButtonText.textContent = 'スタート';
-            progressBarFill.style.width = `0%`; // Reset progress bar visual
-            progressBarFill.style.backgroundColor = 'var(--primary-color)'; // Ensure work color
-            // updateTimerButtonVisibility() is called by updateDisplay()
+
+            updateDisplay(); // This will update timer display and button visibility
         }
 
+        function saveProgress() {
+            // Calculate the minutes elapsed in the current period
+            const elapsedSecondsThisPeriod = totalPeriodSeconds - currentTimeInSeconds;
 
-        // --- Home Screen Clock ---
-        function updateCurrentTime() {
-            const now = new Date();
-            let hours = now.getHours();
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            let period = ''; // For AM/PM
-
-            if (clockFormat === '12') {
-                period = hours >= 12 ? ' PM' : ' AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; // The hour '0' should be '12'
+            // Add the elapsed time from the current period to session totals
+            if (isWorkPeriod) {
+                sessionFocusedSeconds += elapsedSecondsThisPeriod;
+            } else {
+                sessionBreakSeconds += elapsedSecondsThisPeriod;
             }
-            hours = String(hours).padStart(2, '0'); // Ensure two digits for 24-hour format
 
-            currentTimeDisplay.textContent = `${hours}:${minutes}${period}`;
+            // Save the total session times to records and reset the session
+            if (sessionFocusedSeconds > 0) {
+                addRecord('work', Math.floor(sessionFocusedSeconds / 60));
+            }
+            if (sessionBreakSeconds > 0) {
+                addRecord('break', Math.floor(sessionBreakSeconds / 60));
+            }
+
+            resetTimer(); // Reset timer and session totals
+            showCustomAlertDialog('現在のセッションの集中時間と休憩時間を記録しました。', () => {}, () => {});
         }
 
-        // --- UI Navigation ---
-        function showScreen(screenId) {
+        // --- Screen Navigation ---
+        function showScreen(screenToShow) {
             homeScreen.classList.add('hidden');
             timerScreen.classList.add('hidden');
             recordsScreen.classList.add('hidden');
+            
+            screenToShow.classList.remove('hidden');
 
-            // Clear current time interval if leaving home screen
-            if (screenId !== 'homeScreen' && currentTimeInterval !== null) {
-                clearInterval(currentTimeInterval);
-                currentTimeInterval = null; // Ensure interval ID is reset to null
+            if (screenToShow === homeScreen) {
+                clearInterval(currentTimeInterval); // Clear existing interval to avoid duplicates
+                currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000); // Start home screen clock
+                updateCurrentTimeDisplay(); // Initial display
+            } else {
+                clearInterval(currentTimeInterval); // Stop home screen clock when not on home screen
             }
 
-            document.getElementById(screenId).classList.remove('hidden');
-
-            if (screenId === 'recordsScreen') {
-                renderRecordsChart();
-            } else if (screenId === 'timerScreen') {
-                updateDisplay(); // This will also update button visibility
-                // If returning to timer screen when it's not running, ensure it's reset
-                if (!isRunning && timerInterval === null) {
-                    resetTimer(); // This also triggers updateDisplay
-                }
-            } else if (screenId === 'homeScreen') {
-                // Restart current time interval when entering home screen
-                if (currentTimeInterval === null) {
-                    currentTimeInterval = setInterval(updateCurrentTime, 1000);
-                }
-                updateCurrentTime(); // Initial update immediately, crucial for instant display
+            if (screenToShow === recordsScreen) {
+                renderChart(currentChartTimeUnit);
             }
         }
 
-        // --- Modals / Dialogs ---
-        // Global variables to store the current handler functions for the custom alert dialog
-        let currentOkHandler = null;
-        let currentCancelHandler = null;
-
-        function showCustomAlertDialog(message, onOk, onCancel) {
+        // --- Custom Alert/Confirm Dialog Logic ---
+        let resolveAlertDialog; // To store the resolve function of the Promise
+        function showCustomAlertDialog(message, onConfirm, onCancel) {
             alertMessage.textContent = message;
             customAlertDialog.classList.remove('hidden');
 
-            // Remove any previously attached listeners *before* defining and attaching new ones
-            if (currentOkHandler) {
-                alertOkButton.removeEventListener('click', currentOkHandler);
-            }
-            if (currentCancelHandler) {
-                alertCancelButton.removeEventListener('click', currentCancelHandler);
-            }
+            return new Promise((resolve) => {
+                resolveAlertDialog = resolve;
 
-            // Define the new handler functions based on the current onOk and onCancel callbacks
-            const newHandleOk = () => {
-                customAlertDialog.classList.add('hidden');
-                if (onOk) onOk();
-            };
+                const handleOk = () => {
+                    customAlertDialog.classList.add('hidden');
+                    if (onConfirm) onConfirm();
+                    alertOkButton.removeEventListener('click', handleOk);
+                    alertCancelButton.removeEventListener('click', handleCancel);
+                    resolve(true); // Resolve with true for "Yes"
+                };
 
-            const newHandleCancel = () => {
-                customAlertDialog.classList.add('hidden');
-                if (onCancel) onCancel();
-            };
+                const handleCancel = () => {
+                    customAlertDialog.classList.add('hidden');
+                    if (onCancel) onCancel();
+                    alertOkButton.removeEventListener('click', handleOk);
+                    alertCancelButton.removeEventListener('click', handleCancel);
+                    resolve(false); // Resolve with false for "No"
+                };
 
-            // Store the new handlers in the global variables
-            currentOkHandler = newHandleOk;
-            currentCancelHandler = newHandleCancel;
-
-            // Attach the new handlers
-            alertOkButton.addEventListener('click', currentOkHandler);
-            alertCancelButton.addEventListener('click', currentCancelHandler);
-        }
-
-        // --- Chart.js Integration ---
-        function getAggregatedRecords(timeUnit) {
-            const rawRecords = getRecords();
-            const aggregated = {};
-
-            rawRecords.forEach(record => {
-                let key;
-                const date = new Date(record.date);
-                if (timeUnit === 'day') {
-                    key = record.date; //YYYY-MM-DD
-                } else if (timeUnit === 'month') {
-                    key = date.getFullYear().toString() + '-' + String(date.getMonth() + 1).padStart(2, '0'); //YYYY-MM
-                } else if (timeUnit === 'year') {
-                    key = date.getFullYear().toString(); //YYYY
-                }
-
-                if (!aggregated[key]) {
-                    aggregated[key] = { workMinutes: 0, breakMinutes: 0 };
-                }
-                aggregated[key].workMinutes += (record.workMinutes || 0);
-                aggregated[key].breakMinutes += (record.breakMinutes || 0);
-            });
-
-            // Sort keys to ensure chronological order for charts
-            const labels = Object.keys(aggregated).sort();
-            const workData = labels.map(key => aggregated[key].workMinutes);
-            const breakData = labels.map(key => aggregated[key].breakMinutes);
-
-            return { labels, workData, breakData };
-        }
-
-        function getChartTitleForUnit(unit) {
-            switch (unit) {
-                case 'day': return '日ごとの集中と休憩の時間';
-                case 'month': return '月ごとの集中と休憩の時間';
-                case 'year': return '年ごとの集中と休憩の時間';
-                default: return '集中と休憩の時間';
-            }
-        }
-
-        function getXAxisTitleForUnit(unit) {
-            switch (unit) {
-                case 'day': return '日付';
-                case 'month': return '月';
-                case 'year': return '年';
-                default: return '';
-            }
-        }
-
-        function renderRecordsChart() {
-            const { labels, workData, breakData } = getAggregatedRecords(currentChartTimeUnit);
-
-            if (labels.length === 0) {
-                recordsChartCanvas.classList.add('hidden');
-                noDataMessage.classList.remove('hidden');
-                if (recordsChart) {
-                    recordsChart.destroy(); // Destroy existing chart if no data
-                    recordsChart = null; // Clear reference
-                }
-                return;
-            } else {
-                recordsChartCanvas.classList.remove('hidden');
-                noDataMessage.classList.add('hidden');
-            }
-
-            // Get dynamic colors from CSS variables
-            const primaryColorCss = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
-            const breakColorCss = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
-
-            if (recordsChart) {
-                recordsChart.destroy(); // Destroy previous chart instance before creating a new one
-            }
-
-            const ctx = recordsChartCanvas.getContext('2d');
-            recordsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: '集中時間 (分)',
-                            data: workData,
-                            backgroundColor: primaryColorCss, // Use the dynamic primary color
-                            borderRadius: 4,
-                        },
-                        {
-                            label: '休憩時間 (分)',
-                            data: breakData,
-                            backgroundColor: breakColorCss, // Use the dynamic secondary color (break)
-                            borderRadius: 4,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `${getChartTitleForUnit(currentChartTimeUnit)}`, // Dynamic title based on unit
-                            font: {
-                                size: 16,
-                                family: 'Inter', // Set font to Inter
-                            },
-                            color: '#374151',
-                        },
-                        legend: {
-                            labels: {
-                                font: {
-                                    family: 'Inter', // Set font to Inter
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: false, // Changed to false for side-by-side bars
-                            title: {
-                                display: true,
-                                text: getXAxisTitleForUnit(currentChartTimeUnit),
-                                font: {
-                                    family: 'Inter', // Set font to Inter
-                                },
-                            },
-                            ticks: {
-                                font: {
-                                    family: 'Inter', // Set font to Inter
-                                }
-                            }
-                        },
-                        y: {
-                            stacked: false, // Changed to false for side-by-side bars
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: '時間 (分)',
-                                font: {
-                                    family: 'Inter', // Set font to Inter
-                                },
-                            },
-                            ticks: {
-                                font: {
-                                    family: 'Inter', // Set font to Inter
-                                }
-                            }
-                        }
-                    }
-                }
+                alertOkButton.addEventListener('click', handleOk);
+                alertCancelButton.addEventListener('click', handleCancel);
             });
         }
 
         // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Apply initial theme colors
-            setThemeColors(themeColor);
-            // Show home screen and start clock
-            showScreen('homeScreen');
-        });
-
         focusButton.addEventListener('click', () => {
-            // Always reset timer when starting a new focus session
-            resetTimer(); 
-            showScreen('timerScreen');
+            showScreen(timerScreen);
+            resetTimer(); // Ensure timer is reset when entering the screen
+            updateDisplay(); // Initial display update
         });
 
         viewRecordsButton.addEventListener('click', () => {
-            showScreen('recordsScreen');
+            showScreen(recordsScreen);
+            renderChart(currentChartTimeUnit); // Render chart when navigating to records screen
         });
 
-        // This button now only shows if the timer is NOT running.
         backToHomeFromTimerButton.addEventListener('click', () => {
-            showScreen('homeScreen');
+            if (isRunning || timerInterval !== null) { // If timer is running or paused
+                showCustomAlertDialog('タイマーが実行中または一時停止中です。進捗を破棄してホームに戻りますか？', () => {
+                    resetTimer();
+                    showScreen(homeScreen);
+                }, () => {
+                    // Do nothing, stay on timer screen
+                });
+            } else {
+                showScreen(homeScreen);
+            }
         });
 
         backToHomeFromRecordsButton.addEventListener('click', () => {
-            showScreen('homeScreen');
+            showScreen(homeScreen);
         });
 
         startButton.addEventListener('click', startTimer);
-        
-        saveProgressButton.addEventListener('click', () => {
-            // Calculate elapsed time in minutes for the current period
-            let elapsedSecondsThisPeriod;
-            let currentPeriodType;
-
-            // Determine elapsed time based on current period type and remaining time
-            if (isWorkPeriod) {
-                // If it's a work period, elapsed time is initial work time minus remaining time
-                elapsedSecondsThisPeriod = (workTime * 60) - currentTimeInSeconds;
-                currentPeriodType = 'work';
-            } else {
-                // If it's a break period, elapsed time is initial break time minus remaining time
-                elapsedSecondsThisPeriod = (breakTime * 60) - currentTimeInSeconds;
-                currentPeriodType = 'break';
-            }
-            
-            // Round elapsed minutes to the nearest whole minute for recording
-            const elapsedMinutesThisPeriod = Math.round(elapsedSecondsThisPeriod / 60);
-
-            // Add the elapsed time to session totals
-            if (currentPeriodType === 'work') {
-                sessionFocusedMinutes += elapsedMinutesThisPeriod;
-            } else {
-                sessionBreakMinutes += elapsedMinutesThisPeriod;
-            }
-
-            // Add record for the elapsed time to daily history
-            addRecord(currentPeriodType, elapsedMinutesThisPeriod);
-            
-            showCustomAlertDialog('現在のセッションを保存しました。', () => {
-                resetTimer(); // Reset timer after saving (this will clear session totals and show back button)
-            }, () => {
-                resetTimer(); // Reset timer even if "いいえ" is clicked (this will clear session totals and show back button)
-            });
-        });
-
+        saveProgressButton.addEventListener('click', saveProgress);
 
         homeScreenSettingsButton.addEventListener('click', () => {
+            // Populate modal inputs with current settings
             workTimeInput.value = workTime;
             breakTimeInput.value = breakTime;
             themeColorInput.value = themeColor;
-            // Set clock format radio button based on current setting
-            if (clockFormat === '12') {
-                clockFormat12.checked = true;
-            } else {
+            if (clockFormat === '24') {
                 clockFormat24.checked = true;
+            } else {
+                clockFormat12.checked = true;
             }
             settingsModal.classList.remove('hidden');
         });
 
         cancelSettingsButton.addEventListener('click', () => {
             settingsModal.classList.add('hidden');
+            // Revert inputs to saved values if user cancels
+            workTimeInput.value = workTime;
+            breakTimeInput.value = breakTime;
+            themeColorInput.value = themeColor;
+            if (clockFormat === '24') {
+                clockFormat24.checked = true;
+            } else {
+                clockFormat12.checked = true;
+            }
         });
 
         saveSettingsButton.addEventListener('click', () => {
@@ -1123,40 +964,177 @@
             const newThemeColor = themeColorInput.value;
             const newClockFormat = document.querySelector('input[name="clockFormat"]:checked').value;
 
-
-            // Basic validation
-            if (isNaN(newWorkTime) || newWorkTime < 5) {
-                showCustomAlertDialog('作業時間は5分以上である必要があります。', null, null);
-                return;
-            }
-            if (isNaN(newBreakTime) || newBreakTime < 1) {
-                showCustomAlertDialog('休憩時間は1分以上である必要があります。', null, null);
+            if (newWorkTime < 1 || newBreakTime < 1) {
+                showCustomAlertDialog('作業時間と休憩時間は1分以上で設定してください。', () => {}, () => {});
                 return;
             }
 
-            workTime = newWorkTime;
-            breakTime = newBreakTime;
-            themeColor = newThemeColor;
-            clockFormat = newClockFormat; // Update the clock format variable
+            // Only update if values have changed
+            if (workTime !== newWorkTime) {
+                workTime = newWorkTime;
+                localStorage.setItem('pomodoroWorkTime', workTime);
+            }
+            if (breakTime !== newBreakTime) {
+                breakTime = newBreakTime;
+                localStorage.setItem('pomodoroBreakTime', breakTime);
+            }
+            if (themeColor !== newThemeColor) {
+                themeColor = newThemeColor;
+                localStorage.setItem('pomodoroThemeColor', themeColor);
+                setThemeColors(themeColor); // Apply new theme color immediately
+            }
+            if (clockFormat !== newClockFormat) {
+                clockFormat = newClockFormat;
+                localStorage.setItem('pomodoroClockFormat', clockFormat);
+                updateCurrentTimeDisplay(); // Update home screen clock format
+            }
+            
+            // If the timer is not running or paused, reset it with new work time
+            if (timerInterval === null) {
+                resetTimer(); // This will update currentTimeInSeconds and display
+            } else {
+                // If timer is running/paused, don't reset currentTimeInSeconds
+                // Just update totalPeriodSeconds if the period changes (e.g., from 25 to 30 mins work)
+                if (isWorkPeriod) {
+                    totalPeriodSeconds = workTime * 60;
+                } else {
+                    totalPeriodSeconds = breakTime * 60;
+                }
+                updateDisplay(); // Update display to reflect potential changes in progress bar if total time changed
+            }
 
-            localStorage.setItem('pomodoroWorkTime', workTime);
-            localStorage.setItem('pomodoroBreakTime', breakTime);
-            localStorage.setItem('pomodoroThemeColor', themeColor);
-            localStorage.setItem('pomodoroClockFormat', clockFormat); // Save clock format
-
-            setThemeColors(themeColor); // Apply new theme color immediately
-            resetTimer(); // Reset timer with new settings (applies new work/break times)
-            updateCurrentTime(); // Update home screen clock with new format
             settingsModal.classList.add('hidden');
         });
 
-        // Event listeners for records time unit buttons
+        // --- Chart Logic ---
+        function processRecordsForChart(records, timeUnit) {
+            const dataMap = new Map();
+
+            records.forEach(record => {
+                const date = new Date(record.date);
+                let key;
+                if (timeUnit === 'day') {
+                    key = record.date; // YYYY-MM-DD
+                } else if (timeUnit === 'month') {
+                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+                } else if (timeUnit === 'year') {
+                    key = `${date.getFullYear()}`; // YYYY
+                }
+
+                if (!dataMap.has(key)) {
+                    dataMap.set(key, { workMinutes: 0, breakMinutes: 0 });
+                }
+                const currentData = dataMap.get(key);
+                currentData.workMinutes += (record.workMinutes || 0);
+                currentData.breakMinutes += (record.breakMinutes || 0);
+            });
+
+            // Sort keys chronologically
+            const sortedKeys = Array.from(dataMap.keys()).sort();
+
+            const labels = [];
+            const workData = [];
+            const breakData = [];
+
+            sortedKeys.forEach(key => {
+                labels.push(key);
+                const data = dataMap.get(key);
+                workData.push(data.workMinutes);
+                breakData.push(data.breakMinutes);
+            });
+
+            return { labels, workData, breakData };
+        }
+
+        function renderChart(timeUnit) {
+            const records = getRecords();
+            const { labels, workData, breakData } = processRecordsForChart(records, timeUnit);
+
+            if (recordsChart) {
+                recordsChart.destroy(); // Destroy previous chart instance
+            }
+
+            if (labels.length === 0) {
+                noDataMessage.classList.remove('hidden');
+                recordsChartCanvas.classList.add('hidden');
+                return;
+            } else {
+                noDataMessage.classList.add('hidden');
+                recordsChartCanvas.classList.remove('hidden');
+            }
+
+            const ctx = recordsChartCanvas.getContext('2d');
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+            const breakColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
+
+            recordsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '集中時間 (分)',
+                            data: workData,
+                            backgroundColor: primaryColor,
+                            borderColor: primaryColor,
+                            borderWidth: 1
+                        },
+                        {
+                            label: '休憩時間 (分)',
+                            data: breakData,
+                            backgroundColor: breakColor,
+                            borderColor: breakColor,
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allows height to be controlled by CSS
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: timeUnit === 'day' ? '日付' : (timeUnit === 'month' ? '年月' : '年')
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '時間 (分)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+
+            // Adjust canvas min-width for better display, especially for daily view
+            if (timeUnit === 'day' && labels.length > 7) {
+                recordsChartCanvas.style.minWidth = `${labels.length * 50}px`; // Example: 50px per bar
+            } else {
+                recordsChartCanvas.style.minWidth = '380px'; // Default min-width
+            }
+        }
+
         dailyViewButton.addEventListener('click', () => {
             currentChartTimeUnit = 'day';
             dailyViewButton.classList.add('active');
             monthlyViewButton.classList.remove('active');
             yearlyViewButton.classList.remove('active');
-            renderRecordsChart();
+            renderChart(currentChartTimeUnit);
         });
 
         monthlyViewButton.addEventListener('click', () => {
@@ -1164,7 +1142,7 @@
             dailyViewButton.classList.remove('active');
             monthlyViewButton.classList.add('active');
             yearlyViewButton.classList.remove('active');
-            renderRecordsChart();
+            renderChart(currentChartTimeUnit);
         });
 
         yearlyViewButton.addEventListener('click', () => {
@@ -1172,9 +1150,32 @@
             dailyViewButton.classList.remove('active');
             monthlyViewButton.classList.remove('active');
             yearlyViewButton.classList.add('active');
-            renderRecordsChart();
+            renderChart(currentChartTimeUnit);
         });
-        new Worker('timerWorker.js')
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setThemeColors(themeColor); // Apply initial theme color
+            // Set initial radio button state
+            if (clockFormat === '24') {
+                clockFormat24.checked = true;
+            } else {
+                clockFormat12.checked = true;
+            }
+            updateDisplay(); // Initial timer display
+            showScreen(homeScreen); // Start on home screen
+        });
+
+        // Ensure Tone.js context is running after user interaction
+        document.body.addEventListener('click', () => {
+            if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
+                Tone.start().then(() => {
+                    console.log("Tone.js audio context started on user interaction.");
+                }).catch(e => {
+                    console.error("Tone.js audio context failed to start on user interaction:", e);
+                });
+            }
+        }, { once: true }); // Only run once on the first click
     </script>
 </body>
 </html>
