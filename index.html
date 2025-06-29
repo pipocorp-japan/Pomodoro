@@ -454,36 +454,50 @@
     </div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h2 class="modal-header">設定</h2>
-            <div class="modal-body">
-                <label>
-                    作業時間:
-                    <input type="number" id="workTimeInput" min="5" value="25">分
-                </label>
-                <label>
-                    休憩時間:
-                    <input type="number" id="breakTimeInput" min="1" value="5">分
-                </label>
-                <label>
-                    テーマカラー:
-                    <input type="color" id="themeColorInput" value="#ef4444">
-                </label>
-                <label class="flex-col items-start mt-4">
-                    時計表示形式:
-                    <div class="flex items-center mt-2">
-                        <input type="radio" id="clockFormat24" name="clockFormat" value="24" class="mr-1"> <span class="text-base">24時間</span>
-                        <input type="radio" id="clockFormat12" name="clockFormat" value="12" class="ml-6 mr-1"> <span class="text-base">12時間</span>
-                    </div>
-                </label>
+<div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h2 class="modal-header">設定</h2>
+        <div class="modal-body">
+            <label>
+                作業時間:
+                <input type="number" id="workTimeInput" min="5" value="25">分
+            </label>
+            <label>
+                休憩時間:
+                <input type="number" id="breakTimeInput" min="1" value="5">分
+            </label>
+            <label>
+                テーマカラー:
+                <input type="color" id="themeColorInput" value="#ef4444">
+            </label>
+            <label class="flex-col items-start mt-4">
+                時計表示形式:
+                <div class="flex items-center mt-2">
+                    <input type="radio" id="clockFormat24" name="clockFormat" value="24" class="mr-1"> <span class="text-base">24時間</span>
+                    <input type="radio" id="clockFormat12" name="clockFormat" value="12" class="ml-6 mr-1"> <span class="text-base">12時間</span>
+                </div>
+            </label>
+
+            <label class="flex-col items-start mt-4">
+                アラーム音:
+                <div class="flex items-center mt-2 w-full">
+                    <select id="alarmSoundSelect" class="flex-grow mr-2 p-2 border border-gray-300 rounded-md">
+                        </select>
+                    <input type="file" id="alarmFileInput" accept="audio/mpeg, audio/wav, audio/ogg" class="hidden">
+                    <button id="addAlarmSoundButton" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors duration-200">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </label>
             </div>
-            <div class="modal-actions">
-                <button class="button-cancel" id="cancelSettingsButton">キャンセル</button>
-                <button class="button-save" id="saveSettingsButton">保存</button>
-            </div>
+        <div class="modal-actions">
+            <button class="button-cancel" id="cancelSettingsButton">キャンセル</button>
+            <button class="button-save" id="saveSettingsButton">保存</button>
         </div>
     </div>
+</div>
+
+<audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
 
     <!-- Custom Alert/Confirm Dialog -->
     <div id="customAlertDialog" class="modal-overlay hidden">
@@ -500,8 +514,8 @@
     <!-- SoundHelix提供のサンプルMP3を使用しています。必要に応じてURLを置き換えてください。 -->
     <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
 
-    <script> 
-        // --- DOM Elements ---
+<script>
+    // --- DOM Elements ---
 const homeScreen = document.getElementById('homeScreen');
 const timerScreen = document.getElementById('timerScreen');
 const recordsScreen = document.getElementById('recordsScreen');
@@ -526,6 +540,12 @@ const clockFormat24 = document.getElementById('clockFormat24');
 const clockFormat12 = document.getElementById('clockFormat12');
 const saveSettingsButton = document.getElementById('saveSettingsButton');
 const cancelSettingsButton = document.getElementById('cancelSettingsButton');
+
+// --- NEW: Alarm Sound Elements ---
+const alarmSoundSelect = document.getElementById('alarmSoundSelect');
+const alarmFileInput = document.getElementById('alarmFileInput');
+const addAlarmSoundButton = document.getElementById('addAlarmSoundButton');
+// --- END NEW ---
 
 const customAlertDialog = document.getElementById('customAlertDialog');
 const alertMessage = document.getElementById('alertMessage');
@@ -570,21 +590,126 @@ let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
 const alarmSound = document.getElementById('alarmSound'); // audio要素を取得
 let audioUnlocked = false; // Add a flag to track if audio context is unlocked
 
+// --- NEW: Alarm Sound Storage (IndexedDB) ---
+const DB_NAME = 'pomodoro_db';
+const STORE_NAME = 'alarm_sounds';
+let db;
+
+async function openIndexedDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            resolve(db);
+        };
+
+        request.onerror = (event) => {
+            console.error("IndexedDB error:", event.target.errorCode);
+            reject(event.target.errorCode);
+        };
+    });
+}
+
+async function saveAlarmSound(name, dataUrl) {
+    if (!db) await openIndexedDB(); // Ensure DB is open
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.add({ name: name, data: dataUrl });
+
+        request.onsuccess = () => resolve();
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function getAlarmSounds() {
+    if (!db) await openIndexedDB(); // Ensure DB is open
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function loadAlarmSoundsToSelect() {
+    const sounds = await getAlarmSounds();
+    alarmSoundSelect.innerHTML = ''; // Clear existing options
+
+    // Default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = 'default';
+    defaultOption.textContent = 'デフォルト';
+    alarmSoundSelect.appendChild(defaultOption);
+
+    sounds.forEach(sound => {
+        const option = document.createElement('option');
+        option.value = sound.id;
+        option.textContent = sound.name;
+        alarmSoundSelect.appendChild(option);
+    });
+
+    // Add "+" option at the bottom
+    const addOption = document.createElement('option');
+    addOption.value = 'add_new';
+    addOption.textContent = '+';
+    alarmSoundSelect.appendChild(addOption);
+
+    // Set selected value from localStorage or default
+    const savedAlarmId = localStorage.getItem('pomodoroAlarmSoundId') || 'default';
+    alarmSoundSelect.value = savedAlarmId;
+
+    // Set the audio src immediately
+    if (savedAlarmId === 'default') {
+        alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+    } else if (savedAlarmId === 'add_new') {
+        // If '+' was selected previously (shouldn't happen on load if logic is correct)
+        // Reset to default or handle error. For now, reset to default.
+        alarmSoundSelect.value = 'default';
+        alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+        localStorage.setItem('pomodoroAlarmSoundId', 'default');
+    } else {
+        const selectedSound = sounds.find(s => s.id == savedAlarmId); // Use == for loose comparison as ID can be number/string
+        if (selectedSound) {
+            alarmSound.src = selectedSound.data;
+        } else {
+            // If saved ID not found (e.g., sound deleted), revert to default
+            alarmSoundSelect.value = 'default';
+            alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+            localStorage.setItem('pomodoroAlarmSoundId', 'default');
+        }
+    }
+}
+// --- END NEW ---
+
 function playAlarmSound() {
+    // Stop any currently playing alarm to avoid overlaps
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+
     // Only attempt to play if audio has been unlocked or is allowed
     if (audioUnlocked) {
         alarmSound.volume = 0.5;
         alarmSound.play().catch(error => {
             console.warn("アラーム音の再生に失敗しました:", error);
-            // Optionally, inform the user if playback failed due to policy
             if (error.name === 'NotAllowedError') {
                 showCustomAlertDialog('アラーム音の再生には、ページとのインタラクション（例: 開始ボタンのクリック）が必要です。', () => {}, () => {});
+            } else if (error.name === 'NotSupportedError') {
+                 showCustomAlertDialog('このアラーム音は再生できませんでした。別のファイルをお試しください。', () => {}, () => {});
             }
         });
     } else {
         console.log("Audio not unlocked yet. Waiting for user interaction.");
-        // If not unlocked, attempt to play quietly to unlock (some browsers might allow this)
-        // Or, more robustly, rely on the click handler to unlock it
         alarmSound.volume = 0; // Play silently to try and unlock
         alarmSound.play().then(() => {
             alarmSound.pause();
@@ -755,8 +880,6 @@ function addRecord(type, durationMinutes) {
 }
 
 // --- Timer Logic ---
-// ... (既存のコード) ...
-
 function startTimer() {
     // Attempt to unlock audio when the start button is clicked
     unlockAudio();
@@ -791,10 +914,8 @@ function startTimer() {
                     sessionBreakSeconds += breakTime * 60; // 休憩時間全体を累計
                 }
 
-                // --- ここから修正 ---
                 // 現在の期間の記録を保存
                 addRecord(isWorkPeriod ? 'work' : 'break', isWorkPeriod ? workTime : breakTime);
-                // --- 修正ここまで ---
 
                 if (isWorkPeriod) {
                     // 作業期間が終了したら休憩期間へ
@@ -804,11 +925,6 @@ function startTimer() {
                     startTimer(); // 自動的に休憩タイマーを開始
                 } else {
                     // 休憩期間が終了したら、次の集中期間のためにリセット
-                    // リセットする前に現在のセッションの記録を保存
-                    // NOTE: sessionFocusedSeconds と sessionBreakSeconds は既に加算済みなので、
-                    // ここで再度 addRecord を呼ぶ必要はありません。
-                    // resetTimer() の中でセッション累計時間をリセットします。
-
                     resetTimer(); // 次の作業期間のためにタイマーをリセット
                     showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
                         // 'はい' を選択した場合、特に何もしない（タイマーは既にリセット済み）
@@ -821,8 +937,6 @@ function startTimer() {
     }
 }
 
-// ... (既存のコード) ...
-
 function resetTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
@@ -830,7 +944,6 @@ function resetTimer() {
     isWorkPeriod = true;
     currentTimeInSeconds = workTime * 60;
 
-    // これらの変数がリセットされることが重要です
     sessionFocusedSeconds = 0;
     sessionBreakSeconds = 0;
 
@@ -1083,6 +1196,9 @@ homeScreenSettingsButton.addEventListener('click', () => {
     } else {
         clockFormat12.checked = true;
     }
+    // --- NEW: Load alarm sounds when settings open ---
+    loadAlarmSoundsToSelect();
+    // --- END NEW ---
     settingsModal.classList.remove('hidden');
 });
 
@@ -1095,6 +1211,13 @@ saveSettingsButton.addEventListener('click', () => {
     const newBreakTime = parseInt(breakTimeInput.value);
     const newThemeColor = themeColorInput.value;
     const newClockFormat = clockFormat24.checked ? '24' : '12';
+    const selectedAlarmId = alarmSoundSelect.value; // Get selected alarm ID
+
+    if (selectedAlarmId === 'add_new') {
+        // If '+' is still selected, prevent saving and prompt user
+        showCustomAlertDialog('新しいアラーム音を追加するか、別の音を選択してください。', () => {}, () => {});
+        return;
+    }
 
     if (newWorkTime < 1 || newBreakTime < 1) {
         showCustomAlertDialog('作業時間と休憩時間は1分以上である必要があります。', () => {}, () => {});
@@ -1110,6 +1233,32 @@ saveSettingsButton.addEventListener('click', () => {
     localStorage.setItem('pomodoroBreakTime', breakTime);
     localStorage.setItem('pomodoroThemeColor', themeColor);
     localStorage.setItem('pomodoroClockFormat', clockFormat);
+    localStorage.setItem('pomodoroAlarmSoundId', selectedAlarmId); // Save selected alarm ID
+
+    // --- NEW: Update alarm sound source based on selection ---
+    if (selectedAlarmId === 'default') {
+        alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+    } else {
+        // Find the sound in IndexedDB and set its data URL
+        getAlarmSounds().then(sounds => {
+            const selectedSound = sounds.find(s => s.id == selectedAlarmId);
+            if (selectedSound) {
+                alarmSound.src = selectedSound.data;
+            } else {
+                // Fallback to default if selected sound is not found (e.g., deleted)
+                alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+                localStorage.setItem('pomodoroAlarmSoundId', 'default');
+                alarmSoundSelect.value = 'default'; // Update select to default
+            }
+        }).catch(err => {
+            console.error("Failed to load selected alarm sound:", err);
+            // Fallback to default if IndexedDB error
+            alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+            localStorage.setItem('pomodoroAlarmSoundId', 'default');
+            alarmSoundSelect.value = 'default'; // Update select to default
+        });
+    }
+    // --- END NEW ---
 
     setThemeColors(themeColor); // Apply new theme color
     resetTimer(); // Reset timer with new work/break times
@@ -1145,8 +1294,73 @@ yearlyViewButton.addEventListener('click', () => {
     renderChart(currentChartTimeUnit);
 });
 
+// --- NEW: Alarm sound customisation event listeners ---
+
+// When "+" button is clicked, trigger file input click
+addAlarmSoundButton.addEventListener('click', () => {
+    alarmFileInput.click();
+});
+
+// When a file is selected
+alarmFileInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        if (!file.type.startsWith('audio/')) {
+            showCustomAlertDialog('音声ファイルを選択してください。', () => {}, () => {});
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const dataUrl = e.target.result;
+            // Ask user for a name for the new alarm sound
+            const soundName = prompt('このアラーム音の名前を入力してください:', file.name.split('.')[0]);
+            if (soundName) {
+                try {
+                    await saveAlarmSound(soundName, dataUrl);
+                    await loadAlarmSoundsToSelect(); // Reload options including the new one
+                    // Automatically select the newly added sound
+                    // Find the ID of the newly added sound (assuming it's the last one)
+                    const sounds = await getAlarmSounds();
+                    const newSound = sounds.find(s => s.name === soundName && s.data === dataUrl);
+                    if (newSound) {
+                        alarmSoundSelect.value = newSound.id;
+                        localStorage.setItem('pomodoroAlarmSoundId', newSound.id);
+                        alarmSound.src = newSound.data; // Set current alarm sound to new one
+                    }
+                    showCustomAlertDialog(`「${soundName}」が追加されました。`, () => {}, () => {});
+                } catch (error) {
+                    console.error("Failed to save alarm sound:", error);
+                    showCustomAlertDialog('アラーム音の保存に失敗しました。', () => {}, () => {});
+                }
+            }
+        };
+        reader.readAsDataURL(file); // Read file as Data URL
+    }
+    // Reset file input value to allow selecting the same file again if needed
+    alarmFileInput.value = '';
+});
+
+// When alarm sound selection changes
+alarmSoundSelect.addEventListener('change', (event) => {
+    const selectedValue = event.target.value;
+    if (selectedValue === 'add_new') {
+        // If '+' is selected, immediately trigger file input
+        alarmFileInput.click();
+        // Prevent '+' from staying selected, revert to current or default
+        const currentSavedId = localStorage.getItem('pomodoroAlarmSoundId') || 'default';
+        alarmSoundSelect.value = currentSavedId;
+    } else {
+        // If 'default' or a custom sound is selected, save it (will be applied on settings save)
+        // For immediate feedback, you could set alarmSound.src here directly,
+        // but it's generally better to apply changes on 'save' button click.
+    }
+});
+
+// --- END NEW ---
+
 // --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => { // Made async to await IndexedDB
     setThemeColors(themeColor); // Apply initial theme
     updateDisplay(); // Initialize timer display
     showScreen(homeScreen); // Start on the home screen
@@ -1155,7 +1369,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add a global click listener to unlock audio as soon as possible
     document.body.addEventListener('click', unlockAudio, { once: true });
+
+    // --- NEW: Initialize IndexedDB and load sounds on page load ---
+    await openIndexedDB();
+    await loadAlarmSoundsToSelect();
+    // --- END NEW ---
 });
-    </script>
+</script>
 </body>
 </html>
