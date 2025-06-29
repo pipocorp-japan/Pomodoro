@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ポモドーロタイマー</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter Font (slightly bolder weights) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Material Icons (Google Fonts) -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Chart.js for graphing -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         /* Define CSS Custom Properties for theme colors */
@@ -48,12 +44,12 @@
             --secondary-period-color: var(--secondary-period-color-light);
             --on-primary: var(--on-primary-light);
             --on-surface: var(--on-surface-light);
-            --surface-color: var(--surface-color-light);
             --background-color: var(--background-color-light);
             --text-light: var(--text-light-light);
             --outline-color: var(--outline-color-light);
             --grid-color: var(--grid-color-light);
             --analog-hand-color: var(--analog-hand-color-light);
+            --surface-color: var(--surface-color-light); /* Moved here to be set by theme */
         }
 
         /* Dark mode class to override active theme variables */
@@ -175,7 +171,7 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12); /* Stronger shadow */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12); /* Stronger, layered shadow */
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease, color 0.3s ease-in-out;
             cursor: pointer;
             border: none;
@@ -294,6 +290,9 @@
             max-width: 500px; /* Wider modal */
             transform: translateY(30px);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            display: flex; /* Flex container for scrollable content */
+            flex-direction: column;
+            max-height: 90vh; /* Limit height to prevent overflow on small screens */
         }
 
         .modal-overlay.visible .modal-content {
@@ -309,6 +308,12 @@
             transition: color 0.3s ease-in-out;
         }
 
+        .modal-body {
+            flex-grow: 1; /* Allow body to grow and take available space */
+            overflow-y: auto; /* Enable scrolling for modal content */
+            padding-right: 10px; /* Space for scrollbar */
+            margin-right: -10px; /* Compensate for padding */
+        }
         .modal-body label {
             display: flex;
             align-items: center;
@@ -359,6 +364,7 @@
             justify-content: flex-end;
             gap: 16px; /* More space */
             margin-top: 32px;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
         }
 
         .modal-actions button {
@@ -634,12 +640,10 @@
     </style>
   </head>
   <body>
-    <!-- Home Screen -->
     <div id="homeScreen" class="screen">
       <button id="homeScreenSettingsButton" class="icon-button top-right">
         <span class="material-icons">settings</span>
       </button>
-      <!-- Clock Display Container -->
       <div id="homeClockContainer" class="home-clock-container">
         <div id="currentTimeDisplay" class="current-time"></div>
         <canvas id="analogClockCanvas" class="hidden"></canvas>
@@ -654,7 +658,6 @@
       </div>
     </div>
 
-    <!-- Timer Screen -->
     <div id="timerScreen" class="screen hidden">
       <button id="backToHomeFromTimerButton" class="icon-button top-left">
         <span class="material-icons">arrow_back</span>
@@ -683,7 +686,6 @@
       </button>
     </div>
 
-    <!-- Records Screen -->
     <div id="recordsScreen" class="screen hidden">
       <div class="records-header">
         <button id="backToHomeFromRecordsButton" class="icon-button top-left">
@@ -702,7 +704,6 @@
       <p id="noDataMessage" class="text-gray-600 mt-4 hidden">まだ記録がありません。</p>
     </div>
 
-    <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay hidden">
       <div class="modal-content">
         <h2 class="modal-header">設定</h2>
@@ -774,7 +775,6 @@
 
     <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
 
-    <!-- Custom Alert/Confirm Dialog -->
     <div id="customAlertDialog" class="modal-overlay hidden">
       <div class="custom-alert-dialog">
         <p id="alertMessage"></p>
@@ -1195,6 +1195,11 @@ function setClockDisplayMode(mode) {
         clearInterval(currentTimeInterval);
         currentTimeInterval = null;
     }
+    // Always clear canvas when changing display mode or leaving home screen
+    if (analogClockCtx) {
+        analogClockCtx.clearRect(0, 0, analogClockCanvas.width, analogClockCanvas.height);
+    }
+
 
     if (mode === 'digital') {
         currentTimeDisplay.classList.remove('hidden');
@@ -1210,7 +1215,6 @@ function setClockDisplayMode(mode) {
         const size = Math.min(containerRect.width, containerRect.height); // Use actual rendered size of the container
         analogClockCanvas.width = size;
         analogClockCanvas.height = size;
-        // homeClockContainer.style.height = `${size}px`; // This line is no longer strictly needed due to aspect-ratio, but harmless.
         currentTimeInterval = setInterval(drawAnalogClock, 1000);
         drawAnalogClock(); // Initial draw
     }
@@ -1250,11 +1254,12 @@ function updateTimer() {
         timerInterval = null; // Clear interval reference
         playAlarmSound(); // Play alarm when timer ends
 
-        // Update session accumulated time for the *last second* before it hit zero.
+        // Calculate and add the elapsed time for the just-finished period to sessionFocusedSeconds/sessionBreakSeconds
+        // This makes sure the full period time is counted
         if (isWorkPeriod) {
-            sessionFocusedSeconds = (workTime * 60) - (remainingTimeAtLastStart - elapsedTime);
+            sessionFocusedSeconds += (remainingTimeAtLastStart); // Add the full amount of time that was in this period
         } else {
-            sessionBreakSeconds = (breakTime * 60) - (remainingTimeAtLastStart - elapsedTime);
+            sessionBreakSeconds += (remainingTimeAtLastStart);
         }
         updateDisplay(); // Final display update to show 00:00
 
@@ -1263,17 +1268,20 @@ function updateTimer() {
             showCustomAlertDialog(
                 '集中時間終了！休憩に入りますか？\n（「はい」で休憩開始、「いいえ」で集中時間を保存しホームに戻ります）',
                 () => {
+                    // This path means continue to break. Save the just finished work session.
+                    saveRecord(); // Save the completed work session
                     isWorkPeriod = false;
                     currentTimeInSeconds = breakTime * 60;
                     remainingTimeAtLastStart = breakTime * 60; // Set initial for break period
                     startButtonText.textContent = '休憩開始';
                     startButtonIcon.textContent = 'play_arrow'; // Material Icon
                     startButton.classList.remove('hidden');
-                    saveProgressButton.classList.add('hidden');
+                    saveProgressButton.classList.add('hidden'); // Hide save button before break starts
                     startTimer(); // Automatically start break using the startTimer function
                 },
                 () => {
-                    saveRecord();
+                    // This path means go to home. Save the just finished work session.
+                    saveRecord(); // Save the completed work session
                     resetTimer();
                     showScreen('home');
                 }
@@ -1283,17 +1291,20 @@ function updateTimer() {
             showCustomAlertDialog(
                 '休憩時間終了！新しい集中を始めますか？\n（「はい」で集中開始、「いいえ」で休憩時間を保存しホームに戻ります）',
                 () => {
+                    // This path means continue to next work period. Save the just finished break session.
+                    saveRecord(); // Save the completed break session
                     isWorkPeriod = true;
                     currentTimeInSeconds = workTime * 60;
                     remainingTimeAtLastStart = workTime * 60; // Set initial for work period
                     startButtonText.textContent = 'スタート';
                     startButtonIcon.textContent = 'play_arrow'; // Material Icon
                     startButton.classList.remove('hidden');
-                    saveProgressButton.classList.add('hidden');
+                    saveProgressButton.classList.add('hidden'); // Hide save button before work starts
                     startTimer(); // Automatically start new work period
                 },
                 () => {
-                    saveRecord(); // Save accumulated break time
+                    // This path means go to home. Save the just finished break session.
+                    saveRecord(); // Save the completed break session
                     resetTimer();
                     showScreen('home');
                 }
@@ -1303,9 +1314,9 @@ function updateTimer() {
         // Only update session accumulated time if timer is still running (not hit 0)
         // This prevents double counting if `updateTimer` is called again right after hitting 0
         if (isWorkPeriod) {
-            sessionFocusedSeconds++;
+            sessionFocusedSeconds = (workTime * 60) - currentTimeInSeconds;
         } else {
-            sessionBreakSeconds++;
+            sessionBreakSeconds = (breakTime * 60) - currentTimeInSeconds;
         }
         updateDisplay();
     }
@@ -1320,7 +1331,7 @@ function startTimer() {
         timerInterval = setInterval(updateTimer, 1000);
         startButtonText.textContent = '一時停止';
         startButtonIcon.textContent = 'pause'; // Material Icon
-        saveProgressButton.classList.remove('hidden'); // Show save button when running
+        saveProgressButton.classList.remove('hidden'); // Show save button when running or paused
     } else {
         pauseTimer();
     }
@@ -1334,11 +1345,12 @@ function pauseTimer() {
     timerStartTime = null; // Clear start time
     startButtonText.textContent = '再開';
     startButtonIcon.textContent = 'play_arrow'; // Material Icon
+    saveProgressButton.classList.remove('hidden'); // Keep save button visible when paused
 }
 
 function resetTimer() {
     pauseTimer(); // Ensure interval is cleared and state is paused
-    currentTimeInSeconds = workTime * 60;
+    currentTimeInSeconds = workTime * 60; // Reset to full work time
     remainingTimeAtLastStart = workTime * 60; // Reset for a clean start
     isWorkPeriod = true;
     sessionFocusedSeconds = 0; // Reset session times
@@ -1346,60 +1358,42 @@ function resetTimer() {
     updateDisplay();
     startButtonText.textContent = 'スタート';
     startButtonIcon.textContent = 'play_arrow'; // Material Icon
-    saveProgressButton.classList.add('hidden'); // Hide save button
+    saveProgressButton.classList.add('hidden'); // Hide save button on full reset
     stopAlarmSound(); // Ensure alarm is stopped
 }
 
 function updateTimerButtonVisibility() {
     if (isRunning) {
-        startButton.classList.remove('hidden');
-        saveProgressButton.classList.remove('hidden');
+        // If timer is running
+        startButton.classList.remove('hidden'); // Show start/pause button
+        saveProgressButton.classList.remove('hidden'); // Show save button
     } else {
-        // If paused or reset, only show start button if time is not zero
-        if (currentTimeInSeconds > 0 || (sessionFocusedSeconds > 0 || sessionBreakSeconds > 0)) { // Show save button if there's progress
-            startButton.classList.remove('hidden');
-            saveProgressButton.classList.remove('hidden');
+        // If timer is paused or stopped
+        startButton.classList.remove('hidden'); // Always show start/resume button
+        if (sessionFocusedSeconds > 0 || sessionBreakSeconds > 0) {
+            saveProgressButton.classList.remove('hidden'); // Show save if any time accumulated
         } else {
-            startButton.classList.remove('hidden'); // Always show start button if timer is at 00:00 (for new cycle)
-            saveProgressButton.classList.add('hidden'); // Hide save if timer is at 00:00 and no progress
+            saveProgressButton.classList.add('hidden'); // Hide save if no time accumulated (fresh start)
         }
     }
 }
 
 function saveRecord() {
-    // Calculate final focused/break seconds for the period that just ended
-    // This is crucial if the timer was paused mid-way
-    let finalFocusedSeconds = sessionFocusedSeconds;
-    let finalBreakSeconds = sessionBreakSeconds;
-
-    if (isRunning) { // If saving while timer is running, adjust based on elapsed time
-         const elapsed = Math.floor((Date.now() - timerStartTime) / 1000);
-         if (isWorkPeriod) {
-             finalFocusedSeconds = (totalPeriodSeconds - (remainingTimeAtLastStart - elapsed));
-             if (finalFocusedSeconds < 0) finalFocusedSeconds = 0; // Prevent negative
-             finalBreakSeconds = sessionBreakSeconds;
-         } else {
-             finalBreakSeconds = (totalPeriodSeconds - (remainingTimeAtLastStart - elapsed));
-             if (finalBreakSeconds < 0) finalBreakSeconds = 0; // Prevent negative
-             finalFocusedSeconds = sessionFocusedSeconds;
-         }
-    }
-
-
-    if (finalFocusedSeconds === 0 && finalBreakSeconds === 0) {
+    // Only save if there's actual focused or break time accumulated in the session
+    if (sessionFocusedSeconds === 0 && sessionBreakSeconds === 0) {
         console.log("No time to record for this session.");
         return;
     }
 
     const records = JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]');
     const now = new Date();
-    const dateString = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateString = now.toISOString().split('T')[0]; // budou-MM-DD
 
     let recordFound = false;
     for (let i = 0; i < records.length; i++) {
         if (records[i].date === dateString) {
-            records[i].focusedMinutes = (records[i].focusedMinutes || 0) + Math.floor(finalFocusedSeconds / 60);
-            records[i].breakMinutes = (records[i].breakMinutes || 0) + Math.floor(finalBreakSeconds / 60);
+            records[i].focusedMinutes = (records[i].focusedMinutes || 0) + Math.floor(sessionFocusedSeconds / 60);
+            records[i].breakMinutes = (records[i].breakMinutes || 0) + Math.floor(sessionBreakSeconds / 60);
             recordFound = true;
             break;
         }
@@ -1408,8 +1402,8 @@ function saveRecord() {
     if (!recordFound) {
         records.push({
             date: dateString,
-            focusedMinutes: Math.floor(finalFocusedSeconds / 60),
-            breakMinutes: Math.floor(finalBreakSeconds / 60)
+            focusedMinutes: Math.floor(sessionFocusedSeconds / 60),
+            breakMinutes: Math.floor(sessionBreakSeconds / 60)
         });
     }
 
@@ -1475,7 +1469,7 @@ function showScreen(screenId) {
             clearInterval(currentTimeInterval);
             currentTimeInterval = null;
         }
-        // Ensure analog clock canvas is reset if we leave home screen
+        // Always clear canvas when leaving home screen
         if (analogClockCtx) {
             analogClockCtx.clearRect(0, 0, analogClockCanvas.width, analogClockCanvas.height);
         }
@@ -1541,6 +1535,7 @@ function drawAnalogClock() {
         analogClockCtx.textAlign = 'center';
         analogClockCtx.textBaseline = 'middle';
         analogClockCtx.fillStyle = onSurfaceColor;
+        // Corrected calculation for numX and numY for perfect centering
         const numX = centerX + radius * 0.7 * Math.sin(angle);
         const numY = centerY - radius * 0.7 * Math.cos(angle);
         analogClockCtx.fillText(i === 0 ? 12 : i, numX, numY);
@@ -1894,7 +1889,7 @@ function renderRecordsChart(timeUnit) {
                         size: 14
                     },
                     titleFont: {
-                        family: 'Inter, sans-serif',
+                        family: 'Inter',
                         size: 16,
                         weight: 'bold'
                     }
@@ -1998,13 +1993,13 @@ function processRecordsForChart(records, timeUnit) {
         const recordDate = new Date(record.date);
 
         if (timeUnit === 'day') {
-            key = recordDate.toISOString().split('T')[0]; // YYYY-MM-DD
+            key = recordDate.toISOString().split('T')[0]; // budou-MM-DD
             label = `${recordDate.getMonth() + 1}/${recordDate.getDate()}`; // M/D
         } else if (timeUnit === 'month') {
-            key = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+            key = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}`; // budou-MM
             label = `${recordDate.getMonth() + 1}月`;
         } else if (timeUnit === 'year') {
-            key = String(recordDate.getFullYear()); // YYYY
+            key = String(recordDate.getFullYear()); // budou
             label = `${recordDate.getFullYear()}年`;
         }
 
