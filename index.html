@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ポモドーロタイマー</title>
@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Chart.js for graphing -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-
     <style>
         /* Define CSS Custom Properties for theme colors */
         :root {
@@ -383,138 +382,122 @@
             transition: width 0.9s linear; /* Smooth transition for progress */
         }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Home Screen -->
     <div id="homeScreen" class="screen">
-        <button id="homeScreenSettingsButton" class="home-screen-settings-button">
-            <i class="fas fa-cog"></i>
+      <button id="homeScreenSettingsButton" class="home-screen-settings-button">
+        <i class="fas fa-cog"></i>
+      </button>
+      <div id="currentTimeDisplay" class="current-time"></div>
+      <div class="home-buttons">
+        <button id="focusButton" class="home-button">
+          <i class="fas fa-brain"></i>集中する
         </button>
-        <div id="currentTimeDisplay" class="current-time"></div>
-        <div class="home-buttons">
-            <button id="focusButton" class="home-button">
-                <i class="fas fa-brain"></i> 集中する
-            </button>
-            <button id="viewRecordsButton" class="home-button">
-                <i class="fas fa-chart-bar"></i> 記録を見る
-            </button>
-        </div>
-    </div>
-
-    <!-- Timer Screen -->
-    <div id="timerScreen" class="screen hidden">
-        <!-- Back Button - Only visible when timer is not running -->
-        <button id="backToHomeFromTimerButton" class="back-button-top">
-            <i class="fas fa-arrow-left"></i>
+        <button id="viewRecordsButton" class="home-button">
+          <i class="fas fa-chart-bar"></i>記録を見る
         </button>
-
-        <!-- Session Time Display -->
-        <div id="currentSessionWorkTime" class="text-xl font-medium text-gray-700 mt-4">集中: 0分</div>
-        <div id="currentSessionBreakTime" class="text-xl font-medium text-gray-700 mt-2">休憩: 0分</div>
-
-        <!-- Timer Display -->
-        <div id="timerDisplay" class="timer-display">25:00</div>
-
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div id="progressBarFill" class="progress-bar"></div>
-        </div>
-
-        <!-- Buttons Group -->
-        <div class="button-group">
-            <!-- Start/Pause Button -->
-            <button id="startButton" class="button-primary">
-                <i class="fas fa-play" id="startButtonIcon"></i>
-                <span id="startButtonText">スタート</span>
-            </button>
-            <!-- Save Button - Only visible when timer is running or paused -->
-            <button id="saveProgressButton" class="button-secondary hidden">
-                <i class="fas fa-save"></i> 保存
-            </button>
-        </div>
+      </div>
     </div>
-
+    <div id="timerScreen" class="hidden min-h-screen flex flex-col justify-center items-center p-4">
+      <div class="flex flex-col items-center">
+        <h1 id="timerDisplay" class="text-7xl font-bold text-red-500 mb-8">25:00</h1>
+        <div id="progressBar" class="w-64 h-2 bg-gray-300 rounded-full mb-8 overflow-hidden">
+          <div id="progressBarFill" class="h-full rounded-full transition-all duration-100 ease-linear" style="width: 0%;"></div>
+        </div>
+        <div class="flex space-x-4 mb-8">
+          <button id="startButton" class="bg-red-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center min-w-[120px]">
+            <i id="startButtonIcon" class="fas fa-play text-lg mr-2"></i>
+            <span id="startButtonText" class="text-lg">スタート</span>
+          </button>
+          <button id="saveProgressButton" class="bg-gray-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-gray-600 transition-colors duration-200 hidden">
+            <i class="fas fa-save text-lg mr-2"></i>
+            <span>保存</span>
+          </button>
+        </div>
+        <div class="flex flex-col items-center text-gray-700 text-lg mb-8">
+          <span id="currentSessionWorkTime" class="mb-2">集中: 0分</span>
+          <span id="currentSessionBreakTime">休憩: 0分</span>
+        </div>
+        <button id="backToHomeFromTimerButton" class="text-gray-500 hover:text-gray-700 transition-colors duration-200 text-sm">
+          <i class="fas fa-arrow-left mr-2"></i>ホームに戻る
+        </button>
+        <button id="stopAlarmButton" class="mt-8 bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-blue-600 transition-colors duration-200 hidden">
+          <i class="fas fa-bell-slash text-lg mr-2"></i>
+          <span>停止</span>
+        </button>
+      </div>
+    </div>
     <!-- Records Screen -->
     <div id="recordsScreen" class="screen hidden">
-        <div class="records-header">
-            <button id="backToHomeFromRecordsButton" class="back-button-top">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h2>記録</h2>
-        </div>
-        <div class="records-time-unit-buttons">
-            <button id="dailyViewButton" class="active">日単位</button>
-            <button id="monthlyViewButton">月単位</button>
-            <button id="yearlyViewButton">年単位</button>
-        </div>
-        <div class="chart-scroll-container">
-            <canvas id="recordsChartCanvas"></canvas>
-        </div>
-        <p id="noDataMessage" class="text-gray-600 mt-4 hidden">まだ記録がありません。</p>
+      <div class="records-header">
+        <button id="backToHomeFromRecordsButton" class="back-button-top">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h2>記録</h2>
+      </div>
+      <div class="records-time-unit-buttons">
+        <button id="dailyViewButton" class="active">日単位</button>
+        <button id="monthlyViewButton">月単位</button>
+        <button id="yearlyViewButton">年単位</button>
+      </div>
+      <div class="chart-scroll-container">
+        <canvas id="recordsChartCanvas"></canvas>
+      </div>
+      <p id="noDataMessage" class="text-gray-600 mt-4 hidden">まだ記録がありません。</p>
     </div>
-
-    <!-- Settings Modal -->
-<div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal-content">
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal-content">
         <h2 class="modal-header">設定</h2>
         <div class="modal-body">
-            <label>
-                作業時間:
-                <input type="number" id="workTimeInput" min="5" value="25">分
-            </label>
-            <label>
-                休憩時間:
-                <input type="number" id="breakTimeInput" min="1" value="5">分
-            </label>
-            <label>
-                テーマカラー:
-                <input type="color" id="themeColorInput" value="#ef4444">
-            </label>
-            <label class="flex-col items-start mt-4">
-                時計表示形式:
-                <div class="flex items-center mt-2">
-                    <input type="radio" id="clockFormat24" name="clockFormat" value="24" class="mr-1"> <span class="text-base">24時間</span>
-                    <input type="radio" id="clockFormat12" name="clockFormat" value="12" class="ml-6 mr-1"> <span class="text-base">12時間</span>
-                </div>
-            </label>
-
-            <label class="flex-col items-start mt-4">
-                アラーム音:
-                <div class="flex items-center mt-2 w-full">
-                    <select id="alarmSoundSelect" class="flex-grow mr-2 p-2 border border-gray-300 rounded-md">
-                        </select>
-                    <input type="file" id="alarmFileInput" accept="audio/mpeg, audio/wav, audio/ogg" class="hidden">
-                    <button id="addAlarmSoundButton" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors duration-200">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </label>
+          <label>作業時間: 
+            <input type="number" id="workTimeInput" min="5" value="25">分 
+          </label>
+          <label>休憩時間: 
+            <input type="number" id="breakTimeInput" min="1" value="5">分 
+          </label>
+          <label>テーマカラー: 
+            <input type="color" id="themeColorInput" value="#ef4444">
+          </label>
+          <label class="flex-col items-start mt-4">時計表示形式: 
+            <div class="flex items-center mt-2">
+              <input type="radio" id="clockFormat24" name="clockFormat" value="24" class="mr-1">
+              <span class="text-base">24時間</span>
+              <input type="radio" id="clockFormat12" name="clockFormat" value="12" class="ml-6 mr-1">
+              <span class="text-base">12時間</span>
             </div>
-        <div class="modal-actions">
-            <button class="button-cancel" id="cancelSettingsButton">キャンセル</button>
-            <button class="button-save" id="saveSettingsButton">保存</button>
+          </label>
+          <label class="flex-col items-start mt-4">アラーム音: 
+            <div class="flex items-center mt-2 w-full">
+              <select id="alarmSoundSelect" class="flex-grow mr-2 p-2 border border-gray-300 rounded-md"></select>
+              <input type="file" id="alarmFileInput" accept="audio/mpeg, audio/wav, audio/ogg" class="hidden">
+              <button id="addAlarmSoundButton" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors duration-200">
+                <i class="fas fa-plus"></i>
+              </button>
+              <button id="deleteAlarmSoundButton" class="bg-red-500 text-white px-3 py-2 ml-2 rounded-md hover:bg-red-600 transition-colors duration-200">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </label>
         </div>
+        <div class="modal-actions">
+          <button class="button-cancel" id="cancelSettingsButton">キャンセル</button>
+          <button class="button-save" id="saveSettingsButton">保存</button>
+        </div>
+      </div>
     </div>
-</div>
-
-<audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
-
+    <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
     <!-- Custom Alert/Confirm Dialog -->
     <div id="customAlertDialog" class="modal-overlay hidden">
-        <div class="custom-alert-dialog">
-            <p id="alertMessage"></p>
-            <div class="modal-actions justify-center">
-                <button class="button-cancel" id="alertCancelButton">いいえ</button>
-                <button class="button-save" id="alertOkButton">はい</button>
-            </div>
+      <div class="custom-alert-dialog">
+        <p id="alertMessage"></p>
+        <div class="modal-actions justify-center">
+          <button class="button-cancel" id="alertCancelButton">いいえ</button>
+          <button class="button-save" id="alertOkButton">はい</button>
         </div>
+      </div>
     </div>
-
-    <!-- アラーム音用のaudioタグを追加 -->
-    <!-- SoundHelix提供のサンプルMP3を使用しています。必要に応じてURLを置き換えてください。 -->
-    <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
-
-<script>
+    <script>
     // --- DOM Elements ---
 const homeScreen = document.getElementById('homeScreen');
 const timerScreen = document.getElementById('timerScreen');
@@ -537,7 +520,7 @@ const workTimeInput = document.getElementById('workTimeInput');
 const breakTimeInput = document.getElementById('breakTimeInput');
 const themeColorInput = document.getElementById('themeColorInput');
 const clockFormat24 = document.getElementById('clockFormat24');
-const clockFormat12 = document.getElementById('clockFormat12');
+const clockFormat12 = document = document.getElementById('clockFormat12');
 const saveSettingsButton = document.getElementById('saveSettingsButton');
 const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 
@@ -545,6 +528,8 @@ const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 const alarmSoundSelect = document.getElementById('alarmSoundSelect');
 const alarmFileInput = document.getElementById('alarmFileInput');
 const addAlarmSoundButton = document.getElementById('addAlarmSoundButton');
+const deleteAlarmSoundButton = document.getElementById('deleteAlarmSoundButton');
+const stopAlarmButton = document.getElementById('stopAlarmButton'); // NEW
 // --- END NEW ---
 
 const customAlertDialog = document.getElementById('customAlertDialog');
@@ -589,6 +574,7 @@ let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
 // --- Audio ---
 const alarmSound = document.getElementById('alarmSound'); // audio要素を取得
 let audioUnlocked = false; // Add a flag to track if audio context is unlocked
+let isAlarmPlaying = false; // NEW: Track if alarm is currently playing
 
 // --- NEW: Alarm Sound Storage (IndexedDB) ---
 const DB_NAME = 'pomodoro_db';
@@ -624,6 +610,18 @@ async function saveAlarmSound(name, dataUrl) {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.add({ name: name, data: dataUrl });
+
+        request.onsuccess = () => resolve();
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function deleteAlarmSound(id) {
+    if (!db) await openIndexedDB(); // Ensure DB is open
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(id);
 
         request.onsuccess = () => resolve();
         request.onerror = (event) => reject(event.target.error);
@@ -672,21 +670,25 @@ async function loadAlarmSoundsToSelect() {
     // Set the audio src immediately
     if (savedAlarmId === 'default') {
         alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+        deleteAlarmSoundButton.classList.add('hidden'); // Hide delete button for default
     } else if (savedAlarmId === 'add_new') {
         // If '+' was selected previously (shouldn't happen on load if logic is correct)
         // Reset to default or handle error. For now, reset to default.
         alarmSoundSelect.value = 'default';
         alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
         localStorage.setItem('pomodoroAlarmSoundId', 'default');
+        deleteAlarmSoundButton.classList.add('hidden'); // Hide delete button for default
     } else {
         const selectedSound = sounds.find(s => s.id == savedAlarmId); // Use == for loose comparison as ID can be number/string
         if (selectedSound) {
             alarmSound.src = selectedSound.data;
+            deleteAlarmSoundButton.classList.remove('hidden'); // Show delete button for custom
         } else {
             // If saved ID not found (e.g., sound deleted), revert to default
             alarmSoundSelect.value = 'default';
             alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
             localStorage.setItem('pomodoroAlarmSoundId', 'default');
+            deleteAlarmSoundButton.classList.add('hidden'); // Hide delete button for default
         }
     }
 }
@@ -700,7 +702,10 @@ function playAlarmSound() {
     // Only attempt to play if audio has been unlocked or is allowed
     if (audioUnlocked) {
         alarmSound.volume = 0.5;
-        alarmSound.play().catch(error => {
+        alarmSound.play().then(() => {
+            isAlarmPlaying = true; // Alarm started playing
+            stopAlarmButton.classList.remove('hidden'); // Show the stop alarm button
+        }).catch(error => {
             console.warn("アラーム音の再生に失敗しました:", error);
             if (error.name === 'NotAllowedError') {
                 showCustomAlertDialog('アラーム音の再生には、ページとのインタラクション（例: 開始ボタンのクリック）が必要です。', () => {}, () => {});
@@ -720,6 +725,15 @@ function playAlarmSound() {
         }).catch(error => {
             console.warn("Silent audio unlock failed:", error);
         });
+    }
+}
+
+function stopAlarmSound() {
+    if (isAlarmPlaying) {
+        alarmSound.pause();
+        alarmSound.currentTime = 0;
+        isAlarmPlaying = false;
+        stopAlarmButton.classList.add('hidden'); // Hide the stop alarm button
     }
 }
 
@@ -952,6 +966,7 @@ function resetTimer() {
     startButtonText.textContent = 'スタート';
 
     updateDisplay();
+    stopAlarmSound(); // NEW: Stop alarm sound when timer is reset
 }
 
 function saveProgress() {
@@ -1196,9 +1211,8 @@ homeScreenSettingsButton.addEventListener('click', () => {
     } else {
         clockFormat12.checked = true;
     }
-    // --- NEW: Load alarm sounds when settings open ---
+    // Load alarm sounds when settings open
     loadAlarmSoundsToSelect();
-    // --- END NEW ---
     settingsModal.classList.remove('hidden');
 });
 
@@ -1235,7 +1249,7 @@ saveSettingsButton.addEventListener('click', () => {
     localStorage.setItem('pomodoroClockFormat', clockFormat);
     localStorage.setItem('pomodoroAlarmSoundId', selectedAlarmId); // Save selected alarm ID
 
-    // --- NEW: Update alarm sound source based on selection ---
+    // Update alarm sound source based on selection
     if (selectedAlarmId === 'default') {
         alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
     } else {
@@ -1258,7 +1272,6 @@ saveSettingsButton.addEventListener('click', () => {
             alarmSoundSelect.value = 'default'; // Update select to default
         });
     }
-    // --- END NEW ---
 
     setThemeColors(themeColor); // Apply new theme color
     resetTimer(); // Reset timer with new work/break times
@@ -1294,7 +1307,7 @@ yearlyViewButton.addEventListener('click', () => {
     renderChart(currentChartTimeUnit);
 });
 
-// --- NEW: Alarm sound customisation event listeners ---
+// --- Alarm sound customisation event listeners ---
 
 // When "+" button is clicked, trigger file input click
 addAlarmSoundButton.addEventListener('click', () => {
@@ -1351,13 +1364,47 @@ alarmSoundSelect.addEventListener('change', (event) => {
         const currentSavedId = localStorage.getItem('pomodoroAlarmSoundId') || 'default';
         alarmSoundSelect.value = currentSavedId;
     } else {
-        // If 'default' or a custom sound is selected, save it (will be applied on settings save)
-        // For immediate feedback, you could set alarmSound.src here directly,
-        // but it's generally better to apply changes on 'save' button click.
+        // If 'default' or a custom sound is selected, show/hide delete button
+        if (selectedValue === 'default') {
+            deleteAlarmSoundButton.classList.add('hidden');
+        } else {
+            deleteAlarmSoundButton.classList.remove('hidden');
+        }
+        // No need to set alarmSound.src here, it will be set on saveSettingsButton click
+        // But for immediate preview, you could add: alarmSound.src = ...; alarmSound.play();
     }
 });
 
-// --- END NEW ---
+// Delete alarm sound
+deleteAlarmSoundButton.addEventListener('click', () => {
+    const selectedId = alarmSoundSelect.value;
+    if (selectedId === 'default' || selectedId === 'add_new') {
+        showCustomAlertDialog('「デフォルト」または「+」は削除できません。', () => {}, () => {});
+        return;
+    }
+
+    showCustomAlertDialog('このアラーム音を削除してもよろしいですか？', async () => {
+        try {
+            await deleteAlarmSound(parseInt(selectedId)); // Ensure ID is integer for IndexedDB
+            await loadAlarmSoundsToSelect(); // Reload options after deletion
+            // If the deleted sound was currently selected, revert to default
+            if (localStorage.getItem('pomodoroAlarmSoundId') == selectedId) {
+                localStorage.setItem('pomodoroAlarmSoundId', 'default');
+                alarmSoundSelect.value = 'default';
+                alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+            }
+            showCustomAlertDialog('アラーム音が削除されました。', () => {}, () => {});
+        } catch (error) {
+            console.error("Failed to delete alarm sound:", error);
+            showCustomAlertDialog('アラーム音の削除に失敗しました。', () => {}, () => {});
+        }
+    }, () => {
+        // User canceled deletion
+    });
+});
+
+// NEW: Stop alarm button event listener
+stopAlarmButton.addEventListener('click', stopAlarmSound);
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => { // Made async to await IndexedDB
@@ -1370,11 +1417,10 @@ document.addEventListener('DOMContentLoaded', async () => { // Made async to awa
     // Add a global click listener to unlock audio as soon as possible
     document.body.addEventListener('click', unlockAudio, { once: true });
 
-    // --- NEW: Initialize IndexedDB and load sounds on page load ---
+    // Initialize IndexedDB and load sounds on page load
     await openIndexedDB();
     await loadAlarmSoundsToSelect();
-    // --- END NEW ---
 });
 </script>
-</body>
+  </body>
 </html>
