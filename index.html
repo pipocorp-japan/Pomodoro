@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ポモドーロタイマー</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Chart.js for graphing -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         /* Define CSS Custom Properties for theme colors */
@@ -18,78 +14,90 @@
             --primary-color: #ef4444; /* Default Red */
             --primary-color-dark: #dc2626; /* Darker Red for hover */
             --secondary-period-color: #10b981; /* Green for break period */
+            --on-primary: #ffffff; /* Text color on primary background */
+            --on-surface: #1f2937; /* Default text color on card/surface */
+            --surface-color: #ffffff; /* Card/Modal background */
+            --background-color: #f0f2f5; /* App background */
+            --text-light: #6b7280; /* Lighter text for labels/hints */
+            --outline-color: #d1d5db; /* Border color for inputs */
         }
 
         /* General Body and Screen Layout */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5; /* Light grey background */
+            background-color: var(--background-color);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px; /* Padding around the content */
+            padding: 24px; /* Slightly more padding for material feel */
             box-sizing: border-box;
-            overflow-x: hidden; /* Prevent horizontal scroll */
+            overflow-x: hidden;
+            color: var(--on-surface); /* Default text color */
         }
 
         .screen {
-            background-color: #ffffff;
-            border-radius: 16px; /* Material rounded corners */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation */
+            background-color: var(--surface-color);
+            border-radius: 20px; /* More rounded corners for Material 3 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08); /* More refined shadow */
             padding: 32px;
             width: 100%;
-            max-width: 400px; /* Max width for mobile-first approach */
+            max-width: 440px; /* Slightly wider max-width */
             display: flex;
             flex-direction: column;
             align-items: center;
-            position: relative; /* For settings button positioning */
-            min-height: 400px; /* Ensure consistent card size */
+            position: relative;
+            min-height: 480px; /* Ensure consistent card size */
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* For screen transitions */
         }
 
-        .hidden {
+        .screen.hidden {
             display: none !important;
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         /* Timer Screen specific styles */
         #timerScreen .timer-display {
-            font-size: 6rem; /* Large timer font */
+            font-size: 7rem; /* Even larger timer font */
             font-weight: 700;
-            color: var(--primary-color); /* Use custom property for theme color */
-            margin-bottom: 24px;
-            letter-spacing: -2px; /* Slight letter spacing adjustment */
+            color: var(--primary-color);
+            margin-bottom: 28px;
+            letter-spacing: -3px;
         }
 
         .button-group {
             display: flex;
-            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            flex-wrap: wrap;
             justify-content: center;
-            gap: 16px; /* Space between buttons */
+            gap: 16px;
             margin-top: 24px;
         }
 
         .button-primary {
-            background-color: var(--primary-color); /* Use custom property for theme color */
-            color: white;
-            padding: 16px 32px;
-            border-radius: 32px; /* Pill-shaped button */
-            font-size: 1.5rem;
+            background-color: var(--primary-color);
+            color: var(--on-primary);
+            padding: 18px 36px; /* Larger padding */
+            border-radius: 36px; /* More pill-shaped */
+            font-size: 1.6rem; /* Slightly larger font */
+            font-weight: 600; /* Medium weight */
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            gap: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Stronger shadow for primary action */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             cursor: pointer;
             border: none;
             outline: none;
-            white-space: nowrap; /* Prevent text wrapping */
+            white-space: nowrap;
         }
 
         .button-primary:hover {
-            background-color: var(--primary-color-dark); /* Darker theme color on hover */
-            transform: translateY(-2px);
+            background-color: var(--primary-color-dark);
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
         }
 
         .button-primary:active {
@@ -98,17 +106,18 @@
         }
 
         .button-secondary {
-            background-color: #6b7280; /* Grey secondary button */
-            color: white;
-            padding: 16px 24px; /* Slightly less padding for secondary action */
+            background-color: #e0e0e0; /* Light grey for secondary */
+            color: var(--on-surface);
+            padding: 16px 28px;
             border-radius: 32px;
             font-size: 1.5rem;
+            font-weight: 500;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Lighter shadow */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             cursor: pointer;
             border: none;
             outline: none;
@@ -116,41 +125,47 @@
         }
 
         .button-secondary:hover {
-            background-color: #4b5563; /* Darker grey on hover */
+            background-color: #d0d0d0; /* Darker grey on hover */
             transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
         }
 
         .button-secondary:active {
             transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        .settings-button, .home-screen-settings-button, .back-button-top {
-            position: absolute;
+        .icon-button {
             background-color: transparent;
             border: none;
-            font-size: 2rem;
-            color: #6b7280; /* Grey color for settings icon */
+            font-size: 2.4rem; /* Larger icons */
+            color: var(--text-light);
             cursor: pointer;
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease;
             outline: none;
+            border-radius: 50%; /* Circular hit area */
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .home-screen-settings-button {
+        .icon-button:hover {
+            color: var(--on-surface);
+            background-color: rgba(0, 0, 0, 0.04); /* Subtle hover effect */
+        }
+
+        .icon-button.top-right {
+            position: absolute;
             top: 20px;
             right: 20px;
         }
 
-        .back-button-top {
+        .icon-button.top-left {
+            position: absolute;
             top: 20px;
             left: 20px;
-            font-size: 1.5rem; /* Smaller icon for back button */
-            padding: 8px; /* Add padding for easier tap */
-            border-radius: 50%; /* Make it circular */
-        }
-
-        .settings-button:hover, .home-screen-settings-button:hover, .back-button-top:hover {
-            color: #374151; /* Darker grey on hover */
+            font-size: 2rem; /* Slightly smaller for back button */
         }
 
         /* Modal / Dialog Styles */
@@ -160,152 +175,181 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            background-color: rgba(0, 0, 0, 0.4); /* Slightly lighter overlay */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
         }
 
         .modal-content {
-            background-color: white;
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            background-color: var(--surface-color);
+            padding: 28px; /* More padding */
+            border-radius: 12px; /* Slightly less rounded than cards */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1);
             width: 90%;
-            max-width: 400px;
+            max-width: 480px; /* Wider modal */
+            transform: translateY(20px);
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .modal-overlay.visible .modal-content {
+            transform: translateY(0);
+            opacity: 1;
         }
 
         .modal-header {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #374151;
+            font-size: 1.8rem; /* Larger header */
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: var(--on-surface);
         }
 
         .modal-body label {
             display: flex;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 16px; /* More space between labels */
             font-size: 1.1rem;
-            color: #4b5563;
+            color: var(--on-surface);
         }
 
         .modal-body input[type="number"],
-        .modal-body input[type="color"] { /* Style for color input */
+        .modal-body input[type="color"],
+        .modal-body select {
             flex-grow: 1;
-            margin-left: 10px;
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            margin-left: 12px; /* More space */
+            padding: 10px 14px; /* More padding */
+            border: 1px solid var(--outline-color);
+            border-radius: 8px; /* Slightly more rounded inputs */
             font-size: 1rem;
             outline: none;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background-color: #fcfcfc; /* Slight off-white for inputs */
         }
 
         .modal-body input[type="color"] {
-            padding: 0; /* Color input has different sizing */
-            width: 50px; /* Adjust width for color picker */
-            height: 40px; /* Adjust height for color picker */
+            padding: 0;
+            width: 60px; /* Adjust width for color picker */
+            height: 44px; /* Adjust height for color picker */
             cursor: pointer;
         }
 
         .modal-body input[type="number"]:focus,
-        .modal-body input[type="color"]:focus {
-            border-color: var(--primary-color); /* Use custom property for focus border */
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3); /* Example: a blue shadow, or dynamically set via JS */
+        .modal-body input[type="color"]:focus,
+        .modal-body select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.2); /* Use RGB for transparent shadow */
         }
 
         .modal-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 24px;
         }
 
         .modal-actions button {
-            padding: 10px 18px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px; /* Rounded buttons in modal */
             font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
             border: none;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, box-shadow 0.2s ease;
         }
 
         .modal-actions .button-cancel {
-            background-color: #e5e7eb;
-            color: #4b5563;
+            background-color: #e0e0e0; /* Light grey */
+            color: var(--on-surface);
         }
 
         .modal-actions .button-cancel:hover {
-            background-color: #d1d5db;
+            background-color: #d0d0d0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         }
 
         .modal-actions .button-save {
-            background-color: var(--secondary-period-color); /* Green for save, consistent with break period */
-            color: white;
+            background-color: var(--secondary-period-color); /* Green for save */
+            color: var(--on-primary);
         }
 
         .modal-actions .button-save:hover {
             background-color: #059669; /* Darker green on hover */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
         /* Custom Alert Dialog */
         .custom-alert-dialog {
-            background-color: white;
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            background-color: var(--surface-color);
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1);
             width: 90%;
-            max-width: 350px;
+            max-width: 400px;
             text-align: center;
         }
 
         .custom-alert-dialog p {
-            font-size: 1.1rem;
-            margin-bottom: 24px;
-            color: #374151;
+            font-size: 1.15rem; /* Slightly larger message */
+            margin-bottom: 28px;
+            color: var(--on-surface);
+            line-height: 1.6;
         }
 
         /* Home Screen specific styles */
         #homeScreen .current-time {
-            font-size: 4rem; /* Made clock bigger */
+            font-size: 4.5rem; /* Clock bigger */
             font-weight: 600;
-            color: #4b5563;
-            margin-top: 20px; /* Adjusted margin for position */
-            margin-bottom: 40px;
+            color: var(--on-surface);
+            margin-top: 30px;
+            margin-bottom: 50px;
         }
 
         #homeScreen .home-buttons {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 24px; /* More space between buttons */
             width: 100%;
         }
 
         #homeScreen .home-button {
             background-color: var(--primary-color);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            font-size: 1.8rem;
+            color: var(--on-primary);
+            padding: 22px; /* More padding */
+            border-radius: 16px; /* Slightly more rounded than common buttons */
+            font-size: 1.9rem; /* Larger font */
             font-weight: 600;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             cursor: pointer;
             border: none;
             outline: none;
             text-align: center;
+            display: flex; /* For icon and text alignment */
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        #homeScreen .home-button .material-icons {
+            font-size: 2.2rem; /* Icon size */
         }
 
         #homeScreen .home-button:hover {
             background-color: var(--primary-color-dark);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         #homeScreen .home-button:active {
             transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         }
 
         /* Records Screen specific styles */
@@ -314,125 +358,181 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         #recordsScreen .records-header h2 {
-            font-size: 1.8rem;
+            font-size: 2rem; /* Larger header */
             font-weight: 700;
-            color: #374151;
+            color: var(--on-surface);
+            margin-left: auto; /* Center the title, pushing button to left */
+            margin-right: auto;
         }
 
         #recordsScreen .records-time-unit-buttons {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             margin-top: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 24px; /* More space */
             width: 100%;
         }
 
         #recordsScreen .records-time-unit-buttons button {
-            background-color: #cbd5e1; /* Light grey */
-            color: #374151;
-            padding: 8px 16px;
-            border-radius: 8px;
+            background-color: #e0e0e0; /* Light grey */
+            color: var(--on-surface);
+            padding: 10px 18px;
+            border-radius: 10px; /* Slightly more rounded */
             font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
             border: none;
             outline: none;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, box-shadow 0.2s ease;
         }
 
         #recordsScreen .records-time-unit-buttons button.active {
             background-color: var(--primary-color);
-            color: white;
+            color: var(--on-primary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         #recordsScreen .records-time-unit-buttons button:hover:not(.active) {
-            background-color: #a0aec0; /* Slightly darker */
+            background-color: #d0d0d0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .chart-scroll-container {
             width: 100%;
-            overflow-x: auto; /* Enables horizontal scrolling */
-            max-width: 100%; /* Ensure it doesn't overflow its parent */
-            padding-bottom: 15px; /* Space for scrollbar */
+            overflow-x: auto;
+            max-width: 100%;
+            padding-bottom: 15px;
         }
         #recordsChartCanvas {
-            width: 100% !important; /* Start with 100% and let Chart.js adjust based on its options */
-            height: 300px !important;
-            min-width: 380px; /* Minimum width to prevent excessive squeezing for daily view */
+            width: 100% !important;
+            height: 320px !important; /* Slightly taller chart */
+            min-width: 400px; /* Minimum width to prevent excessive squeezing for daily view */
         }
 
         /* Progress Bar styles */
         .progress-container {
-            width: 90%; /* Adjust width relative to card */
-            height: 12px;
+            width: 90%;
+            height: 14px; /* Thicker progress bar */
             background-color: #e5e7eb;
-            border-radius: 6px;
-            margin-top: 20px;
+            border-radius: 7px; /* Matches height for full roundness */
+            margin-top: 24px;
             overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
         }
 
         .progress-bar {
             height: 100%;
-            width: 0%; /* Will be controlled by JS */
+            width: 0%;
             background-color: var(--primary-color);
-            border-radius: 6px;
-            transition: width 0.9s linear; /* Smooth transition for progress */
+            border-radius: 7px;
+            transition: width 0.9s linear;
+        }
+
+        /* Session info text */
+        #timerScreen .session-info {
+            font-size: 1.15rem;
+            color: var(--on-surface);
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        #timerScreen .session-info span {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        /* Radio button and select styles */
+        input[type="radio"] {
+            /* Basic styling for consistency */
+            margin-right: 8px;
+            transform: scale(1.1); /* Slightly larger radio buttons */
+            accent-color: var(--primary-color); /* Highlight color */
+        }
+
+        select {
+            /* Custom select arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding-right: 40px; /* Space for the arrow */
+        }
+
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;  /* Preferred icon size */
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: 'liga';
         }
     </style>
   </head>
   <body>
-    <!-- Home Screen -->
     <div id="homeScreen" class="screen">
-      <button id="homeScreenSettingsButton" class="home-screen-settings-button">
-        <i class="fas fa-cog"></i>
+      <button id="homeScreenSettingsButton" class="icon-button top-right">
+        <span class="material-icons">settings</span>
       </button>
       <div id="currentTimeDisplay" class="current-time"></div>
       <div class="home-buttons">
         <button id="focusButton" class="home-button">
-          <i class="fas fa-brain"></i>集中する
+          <span class="material-icons">self_improvement</span>集中する
         </button>
         <button id="viewRecordsButton" class="home-button">
-          <i class="fas fa-chart-bar"></i>記録を見る
+          <span class="material-icons">bar_chart</span>記録を見る
         </button>
       </div>
     </div>
-    <div id="timerScreen" class="hidden min-h-screen flex flex-col justify-center items-center p-4">
-      <div class="flex flex-col items-center">
-        <h1 id="timerDisplay" class="text-7xl font-bold text-red-500 mb-8">25:00</h1>
-        <div id="progressBar" class="w-64 h-2 bg-gray-300 rounded-full mb-8 overflow-hidden">
-          <div id="progressBarFill" class="h-full rounded-full transition-all duration-100 ease-linear" style="width: 0%;"></div>
-        </div>
-        <div class="flex space-x-4 mb-8">
-          <button id="startButton" class="bg-red-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center min-w-[120px]">
-            <i id="startButtonIcon" class="fas fa-play text-lg mr-2"></i>
-            <span id="startButtonText" class="text-lg">スタート</span>
-          </button>
-          <button id="saveProgressButton" class="bg-gray-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-gray-600 transition-colors duration-200 hidden">
-            <i class="fas fa-save text-lg mr-2"></i>
-            <span>保存</span>
-          </button>
-        </div>
-        <div class="flex flex-col items-center text-gray-700 text-lg mb-8">
-          <span id="currentSessionWorkTime" class="mb-2">集中: 0分</span>
-          <span id="currentSessionBreakTime">休憩: 0分</span>
-        </div>
-        <button id="backToHomeFromTimerButton" class="text-gray-500 hover:text-gray-700 transition-colors duration-200 text-sm">
-          <i class="fas fa-arrow-left mr-2"></i>ホームに戻る
+
+    <div id="timerScreen" class="screen hidden">
+      <button id="backToHomeFromTimerButton" class="icon-button top-left">
+        <span class="material-icons">arrow_back</span>
+      </button>
+      <h1 id="timerDisplay" class="timer-display">25:00</h1>
+      <div class="progress-container">
+        <div id="progressBarFill" class="progress-bar"></div>
+      </div>
+      <div class="button-group">
+        <button id="startButton" class="button-primary">
+          <span id="startButtonIcon" class="material-icons">play_arrow</span>
+          <span id="startButtonText">スタート</span>
         </button>
-        <button id="stopAlarmButton" class="mt-8 bg-blue-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-blue-600 transition-colors duration-200 hidden">
-          <i class="fas fa-bell-slash text-lg mr-2"></i>
-          <span>停止</span>
+        <button id="saveProgressButton" class="button-secondary hidden">
+          <span class="material-icons">save</span>
+          <span>保存</span>
         </button>
       </div>
+      <div class="session-info">
+        <span id="currentSessionWorkTime">集中: 0分</span>
+        <span id="currentSessionBreakTime">休憩: 0分</span>
+      </div>
+      <button id="stopAlarmButton" class="button-secondary mt-6 hidden">
+        <span class="material-icons">alarm_off</span>
+        <span>アラームを停止</span>
+      </button>
     </div>
-    <!-- Records Screen -->
+
     <div id="recordsScreen" class="screen hidden">
       <div class="records-header">
-        <button id="backToHomeFromRecordsButton" class="back-button-top">
-          <i class="fas fa-arrow-left"></i>
+        <button id="backToHomeFromRecordsButton" class="icon-button top-left">
+          <span class="material-icons">arrow_back</span>
         </button>
         <h2>記録</h2>
       </div>
@@ -446,20 +546,21 @@
       </div>
       <p id="noDataMessage" class="text-gray-600 mt-4 hidden">まだ記録がありません。</p>
     </div>
+
     <div id="settingsModal" class="modal-overlay hidden">
       <div class="modal-content">
         <h2 class="modal-header">設定</h2>
         <div class="modal-body">
-          <label>作業時間: 
-            <input type="number" id="workTimeInput" min="5" value="25">分 
+          <label>作業時間:
+            <input type="number" id="workTimeInput" min="5" value="25">分
           </label>
-          <label>休憩時間: 
-            <input type="number" id="breakTimeInput" min="1" value="5">分 
+          <label>休憩時間:
+            <input type="number" id="breakTimeInput" min="1" value="5">分
           </label>
-          <label>テーマカラー: 
+          <label>テーマカラー:
             <input type="color" id="themeColorInput" value="#ef4444">
           </label>
-          <label class="flex-col items-start mt-4">時計表示形式: 
+          <label class="flex-col items-start mt-4">時計表示形式:
             <div class="flex items-center mt-2">
               <input type="radio" id="clockFormat24" name="clockFormat" value="24" class="mr-1">
               <span class="text-base">24時間</span>
@@ -467,15 +568,15 @@
               <span class="text-base">12時間</span>
             </div>
           </label>
-          <label class="flex-col items-start mt-4">アラーム音: 
+          <label class="flex-col items-start mt-4">アラーム音:
             <div class="flex items-center mt-2 w-full">
               <select id="alarmSoundSelect" class="flex-grow mr-2 p-2 border border-gray-300 rounded-md"></select>
               <input type="file" id="alarmFileInput" accept="audio/mpeg, audio/wav, audio/ogg" class="hidden">
-              <button id="addAlarmSoundButton" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition-colors duration-200">
-                <i class="fas fa-plus"></i>
+              <button id="addAlarmSoundButton" class="button-secondary p-2">
+                <span class="material-icons">add</span>
               </button>
-              <button id="deleteAlarmSoundButton" class="bg-red-500 text-white px-3 py-2 ml-2 rounded-md hover:bg-red-600 transition-colors duration-200">
-                <i class="fas fa-trash"></i>
+              <button id="deleteAlarmSoundButton" class="bg-red-500 text-white p-2 ml-2 rounded-md hover:bg-red-600 transition-colors duration-200">
+                <span class="material-icons">delete</span>
               </button>
             </div>
           </label>
@@ -486,8 +587,9 @@
         </div>
       </div>
     </div>
+
     <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
-    <!-- Custom Alert/Confirm Dialog -->
+
     <div id="customAlertDialog" class="modal-overlay hidden">
       <div class="custom-alert-dialog">
         <p id="alertMessage"></p>
@@ -497,6 +599,7 @@
         </div>
       </div>
     </div>
+
     <script>
     // --- DOM Elements ---
 const homeScreen = document.getElementById('homeScreen');
@@ -520,7 +623,7 @@ const workTimeInput = document.getElementById('workTimeInput');
 const breakTimeInput = document.getElementById('breakTimeInput');
 const themeColorInput = document.getElementById('themeColorInput');
 const clockFormat24 = document.getElementById('clockFormat24');
-const clockFormat12 = document = document.getElementById('clockFormat12');
+const clockFormat12 = document.getElementById('clockFormat12'); // Fixed typo
 const saveSettingsButton = document.getElementById('saveSettingsButton');
 const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 
@@ -529,7 +632,7 @@ const alarmSoundSelect = document.getElementById('alarmSoundSelect');
 const alarmFileInput = document.getElementById('alarmFileInput');
 const addAlarmSoundButton = document.getElementById('addAlarmSoundButton');
 const deleteAlarmSoundButton = document.getElementById('deleteAlarmSoundButton');
-const stopAlarmButton = document.getElementById('stopAlarmButton'); // NEW
+const stopAlarmButton = document.getElementById('stopAlarmButton');
 // --- END NEW ---
 
 const customAlertDialog = document.getElementById('customAlertDialog');
@@ -660,7 +763,7 @@ async function loadAlarmSoundsToSelect() {
     // Add "+" option at the bottom
     const addOption = document.createElement('option');
     addOption.value = 'add_new';
-    addOption.textContent = '+';
+    addOption.textContent = '+ カスタム音を追加';
     alarmSoundSelect.appendChild(addOption);
 
     // Set selected value from localStorage or default
@@ -707,7 +810,8 @@ function playAlarmSound() {
             stopAlarmButton.classList.remove('hidden'); // Show the stop alarm button
         }).catch(error => {
             console.warn("アラーム音の再生に失敗しました:", error);
-            if (error.name === 'NotAllowedError') {
+            if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
+                // NotAllowedError is common if user hasn't interacted, AbortError can also happen
                 showCustomAlertDialog('アラーム音の再生には、ページとのインタラクション（例: 開始ボタンのクリック）が必要です。', () => {}, () => {});
             } else if (error.name === 'NotSupportedError') {
                  showCustomAlertDialog('このアラーム音は再生できませんでした。別のファイルをお試しください。', () => {}, () => {});
@@ -715,6 +819,8 @@ function playAlarmSound() {
         });
     } else {
         console.log("Audio not unlocked yet. Waiting for user interaction.");
+        // Try to unlock audio context silently on first user interaction
+        // This is a common pattern to bypass browser autoplay policies
         alarmSound.volume = 0; // Play silently to try and unlock
         alarmSound.play().then(() => {
             alarmSound.pause();
@@ -722,8 +828,11 @@ function playAlarmSound() {
             alarmSound.volume = 0.5; // Reset volume
             audioUnlocked = true;
             console.log("Audio unlocked silently.");
+            // Now that it's unlocked, try playing the actual alarm sound again
+            playAlarmSound();
         }).catch(error => {
             console.warn("Silent audio unlock failed:", error);
+            // If silent unlock fails, we'll need a direct user interaction
         });
     }
 }
@@ -773,7 +882,10 @@ function formatCurrentTime(date) {
         hours = hours ? hours : 12; // The hour '0' should be '12' in 12-hour format
     }
 
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${ampm}`;
+    // Pad hours only if 24-hour format or if 12-hour and hour is single digit (e.g., 09:00 AM)
+    const formattedHours = (clockFormat === '24' || hours >= 10 || hours === 0) ? String(hours).padStart(2, '0') : String(hours);
+
+    return `${formattedHours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${ampm}`;
 }
 
 function updateCurrentTimeDisplay() {
@@ -783,12 +895,27 @@ function updateCurrentTimeDisplay() {
 
 function setThemeColors(color) {
     document.documentElement.style.setProperty('--primary-color', color);
-    const r = parseInt(color.slice(1, 3), 16);
-    const g = parseInt(color.slice(3, 5), 16);
-    const b = parseInt(color.slice(5, 7), 16);
-    const darkerColor = `rgb(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)})`;
+    // Calculate a slightly darker shade for hover effect
+    const hexToRgb = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+    };
+
+    const rgbToHex = (r, g, b) => {
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    };
+
+    const { r, g, b } = hexToRgb(color);
+    const darkerColor = rgbToHex(
+        Math.max(0, r - 30),
+        Math.max(0, g - 30),
+        Math.max(0, b - 30)
+    );
     document.documentElement.style.setProperty('--primary-color-dark', darkerColor);
     document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
+
 
     // Update chart colors immediately if chart exists
     if (recordsChart) {
@@ -816,393 +943,259 @@ function updateDisplay() {
     let displayWorkMins = Math.floor(sessionFocusedSeconds / 60);
     let displayBreakMins = Math.floor(sessionBreakSeconds / 60);
 
-    if (isRunning) {
-        const elapsedSecondsThisPeriod = (totalPeriodSeconds - currentTimeInSeconds);
-        if (isWorkPeriod) {
-            displayWorkMins += Math.floor(elapsedSecondsThisPeriod / 60);
-        } else {
-            displayBreakMins += Math.floor(elapsedSecondsThisPeriod / 60);
-        }
-    }
-
     currentSessionWorkTime.textContent = `集中: ${displayWorkMins}分`;
     currentSessionBreakTime.textContent = `休憩: ${displayBreakMins}分`;
 }
 
-function updateTimerButtonVisibility() {
-    if (timerInterval !== null) {
-        saveProgressButton.classList.remove('hidden');
-        backToHomeFromTimerButton.classList.add('hidden');
+function updateTimer() {
+    if (!isRunning) return;
+
+    currentTimeInSeconds--;
+    if (isWorkPeriod) {
+        sessionFocusedSeconds++;
     } else {
-        saveProgressButton.classList.add('hidden');
-        backToHomeFromTimerButton.classList.remove('hidden');
+        sessionBreakSeconds++;
+    }
+
+    updateDisplay();
+
+    if (currentTimeInSeconds <= 0) {
+        clearInterval(timerInterval);
+        playAlarmSound(); // Play alarm when timer ends
+
+        if (isWorkPeriod) {
+            // Work period ended, start break
+            showCustomAlertDialog(
+                '集中時間終了！休憩に入りますか？\n（「はい」で休憩開始、「いいえ」で集中時間を保存しホームに戻ります）',
+                () => {
+                    isWorkPeriod = false;
+                    currentTimeInSeconds = breakTime * 60;
+                    totalPeriodSeconds = breakTime * 60;
+                    startButtonText.textContent = '休憩開始';
+                    startButtonIcon.textContent = 'play_arrow'; // Material Icon
+                    startButton.classList.remove('hidden');
+                    saveProgressButton.classList.add('hidden');
+                    startButton.click(); // Automatically start break
+                },
+                () => {
+                    saveRecord();
+                    resetTimer();
+                    showScreen('home');
+                }
+            );
+        } else {
+            // Break period ended, suggest new work period
+            showCustomAlertDialog(
+                '休憩時間終了！新しい集中を始めますか？\n（「はい」で集中開始、「いいえ」で休憩時間を保存しホームに戻ります）',
+                () => {
+                    isWorkPeriod = true;
+                    currentTimeInSeconds = workTime * 60;
+                    totalPeriodSeconds = workTime * 60;
+                    startButtonText.textContent = 'スタート';
+                    startButtonIcon.textContent = 'play_arrow'; // Material Icon
+                    startButton.classList.remove('hidden');
+                    saveProgressButton.classList.add('hidden');
+                    startButton.click(); // Automatically start new work period
+                },
+                () => {
+                    saveRecord(); // Save accumulated break time
+                    resetTimer();
+                    showScreen('home');
+                }
+            );
+        }
     }
 }
 
-// --- Local Storage Management for Records ---
-function getRecords() {
-    try {
-        const recordsJson = localStorage.getItem(RECORDS_KEY);
-        return recordsJson ? JSON.parse(recordsJson) : [];
-    } catch (e) {
-        console.error("Error parsing records from localStorage", e);
-        return [];
+function startTimer() {
+    unlockAudio(); // Attempt to unlock audio on start
+    if (!isRunning) {
+        isRunning = true;
+        timerInterval = setInterval(updateTimer, 1000);
+        startButtonText.textContent = '一時停止';
+        startButtonIcon.textContent = 'pause'; // Material Icon
+        saveProgressButton.classList.remove('hidden'); // Show save button when running
+    } else {
+        pauseTimer();
     }
 }
 
-function saveRecords(records) {
-    try {
-        localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
-    } catch (e) {
-        console.error("Error saving records to localStorage", e);
+function pauseTimer() {
+    isRunning = false;
+    clearInterval(timerInterval);
+    startButtonText.textContent = '再開';
+    startButtonIcon.textContent = 'play_arrow'; // Material Icon
+}
+
+function resetTimer() {
+    pauseTimer();
+    currentTimeInSeconds = workTime * 60;
+    isWorkPeriod = true;
+    sessionFocusedSeconds = 0; // Reset session times
+    sessionBreakSeconds = 0;   // Reset session times
+    updateDisplay();
+    startButtonText.textContent = 'スタート';
+    startButtonIcon.textContent = 'play_arrow'; // Material Icon
+    saveProgressButton.classList.add('hidden'); // Hide save button
+    stopAlarmSound(); // Ensure alarm is stopped
+}
+
+function updateTimerButtonVisibility() {
+    if (isRunning) {
+        startButton.classList.remove('hidden');
+        saveProgressButton.classList.remove('hidden');
+    } else {
+        // If paused or reset, only show start button if time is not zero
+        if (currentTimeInSeconds > 0) {
+            startButton.classList.remove('hidden');
+            saveProgressButton.classList.remove('hidden'); // Still show save if paused with progress
+        } else {
+            startButton.classList.remove('hidden'); // Always show start button if timer is at 00:00 (for new cycle)
+            saveProgressButton.classList.add('hidden'); // Hide save if timer is at 00:00 and not started
+        }
     }
 }
 
-function addRecord(type, durationMinutes) {
-    if (durationMinutes <= 0 || isNaN(durationMinutes)) {
+function saveRecord() {
+    if (sessionFocusedSeconds === 0 && sessionBreakSeconds === 0) {
+        console.log("No time to record for this session.");
         return;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const records = getRecords();
-    let recordFound = false;
+    const records = JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]');
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
+    let recordFound = false;
     for (let i = 0; i < records.length; i++) {
-        if (records[i].date === today) {
-            if (type === 'work') {
-                records[i].workMinutes = (records[i].workMinutes || 0) + durationMinutes;
-            } else if (type === 'break') {
-                records[i].breakMinutes = (records[i].breakMinutes || 0) + durationMinutes;
-            }
+        if (records[i].date === dateString) {
+            records[i].focusedMinutes = (records[i].focusedMinutes || 0) + Math.floor(sessionFocusedSeconds / 60);
+            records[i].breakMinutes = (records[i].breakMinutes || 0) + Math.floor(sessionBreakSeconds / 60);
             recordFound = true;
             break;
         }
     }
 
     if (!recordFound) {
-        const newRecord = { date: today, workMinutes: 0, breakMinutes: 0 };
-        if (type === 'work') {
-            newRecord.workMinutes = durationMinutes;
-        } else if (type === 'break') {
-            newRecord.breakMinutes = durationMinutes;
-        }
-        records.push(newRecord);
+        records.push({
+            date: dateString,
+            focusedMinutes: Math.floor(sessionFocusedSeconds / 60),
+            breakMinutes: Math.floor(sessionBreakSeconds / 60)
+        });
     }
 
-    records.sort((a, b) => new Date(a.date) - new Date(b.date));
-    saveRecords(records);
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+    sessionFocusedSeconds = 0; // Reset after saving
+    sessionBreakSeconds = 0;   // Reset after saving
+    updateDisplay(); // Update session info display
+    console.log("Record saved:", records);
 }
 
-// --- Timer Logic ---
-function startTimer() {
-    // Attempt to unlock audio when the start button is clicked
-    unlockAudio();
-
-    if (isRunning) {
-        clearInterval(timerInterval);
-        isRunning = false;
-        startButtonIcon.classList.remove('fa-pause');
-        startButtonIcon.classList.add('fa-play');
-        startButtonText.textContent = 'スタート';
-    } else {
-        isRunning = true;
-        startButtonIcon.classList.remove('fa-play');
-        startButtonIcon.classList.add('fa-pause');
-        startButtonText.textContent = '一時停止';
-
-        if (timerInterval) clearInterval(timerInterval);
-
-        timerInterval = setInterval(() => {
-            currentTimeInSeconds--;
-            updateDisplay();
-
-            if (currentTimeInSeconds <= 0) {
-                playAlarmSound();
-                clearInterval(timerInterval);
-                timerInterval = null;
-
-                // 期間が終了した際に、その期間の完了時間を累計に加算
-                if (isWorkPeriod) {
-                    sessionFocusedSeconds += workTime * 60; // 作業時間全体を累計
-                } else {
-                    sessionBreakSeconds += breakTime * 60; // 休憩時間全体を累計
-                }
-
-                // 現在の期間の記録を保存
-                addRecord(isWorkPeriod ? 'work' : 'break', isWorkPeriod ? workTime : breakTime);
-
-                if (isWorkPeriod) {
-                    // 作業期間が終了したら休憩期間へ
-                    isWorkPeriod = false;
-                    currentTimeInSeconds = breakTime * 60;
-                    totalPeriodSeconds = breakTime * 60;
-                    startTimer(); // 自動的に休憩タイマーを開始
-                } else {
-                    // 休憩期間が終了したら、次の集中期間のためにリセット
-                    resetTimer(); // 次の作業期間のためにタイマーをリセット
-                    showCustomAlertDialog('休憩が終了しました。新しい集中期間を開始しますか？', () => {
-                        // 'はい' を選択した場合、特に何もしない（タイマーは既にリセット済み）
-                    }, () => {
-                        // 'いいえ' を選択した場合
-                    });
-                }
-            }
-        }, 1000);
-    }
-}
-
-function resetTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    isRunning = false;
-    isWorkPeriod = true;
-    currentTimeInSeconds = workTime * 60;
-
-    sessionFocusedSeconds = 0;
-    sessionBreakSeconds = 0;
-
-    startButtonIcon.classList.remove('fa-pause');
-    startButtonIcon.classList.add('fa-play');
-    startButtonText.textContent = 'スタート';
-
-    updateDisplay();
-    stopAlarmSound(); // NEW: Stop alarm sound when timer is reset
-}
-
-function saveProgress() {
-    const elapsedSecondsThisPeriod = totalPeriodSeconds - currentTimeInSeconds;
-
-    if (isWorkPeriod) {
-        sessionFocusedSeconds += elapsedSecondsThisPeriod;
-    } else {
-        sessionBreakSeconds += elapsedSecondsThisPeriod;
-    }
-
-    if (sessionFocusedSeconds > 0) {
-        addRecord('work', Math.floor(sessionFocusedSeconds / 60));
-    }
-    if (sessionBreakSeconds > 0) {
-        addRecord('break', Math.floor(sessionBreakSeconds / 60));
-    }
-
-    resetTimer();
-    showCustomAlertDialog('現在のセッションの集中時間と休憩時間を記録しました。', () => {}, () => {});
-}
-
-// --- Screen Navigation ---
-function showScreen(screenToShow) {
-    homeScreen.classList.add('hidden');
-    timerScreen.classList.add('hidden');
-    recordsScreen.classList.add('hidden');
-
-    screenToShow.classList.remove('hidden');
-
-    if (screenToShow === homeScreen) {
-        clearInterval(currentTimeInterval);
-        currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000);
-        updateCurrentTimeDisplay();
-    } else {
-        clearInterval(currentTimeInterval);
-    }
-
-    if (screenToShow === recordsScreen) {
-        renderChart(currentChartTimeUnit);
-    }
-}
-
-// --- Custom Alert/Confirm Dialog Logic ---
-let resolveAlertDialog;
-function showCustomAlertDialog(message, onConfirm, onCancel) {
+function showCustomAlertDialog(message, onOk, onCancel) {
     alertMessage.textContent = message;
     customAlertDialog.classList.remove('hidden');
+    customAlertDialog.classList.add('visible');
 
-    // Remove previous event listeners to prevent multiple calls
-    alertOkButton.onclick = null;
-    alertCancelButton.onclick = null;
-
-    alertOkButton.onclick = () => {
+    const handleOk = () => {
+        onOk();
         customAlertDialog.classList.add('hidden');
-        if (onConfirm) onConfirm();
+        customAlertDialog.classList.remove('visible');
+        alertOkButton.removeEventListener('click', handleOk);
+        alertCancelButton.removeEventListener('click', handleCancel);
     };
 
-    alertCancelButton.onclick = () => {
-        customAlertDialog.classList.add('hidden');
+    const handleCancel = () => {
         if (onCancel) onCancel();
+        customAlertDialog.classList.add('hidden');
+        customAlertDialog.classList.remove('visible');
+        alertOkButton.removeEventListener('click', handleOk);
+        alertCancelButton.removeEventListener('click', handleCancel);
     };
+
+    alertOkButton.addEventListener('click', handleOk);
+    alertCancelButton.addEventListener('click', handleCancel);
 }
 
-
-// --- Chart Logic ---
-function getChartData(timeUnit) {
-    const records = getRecords();
-    let labels = [];
-    let workData = [];
-    let breakData = [];
-    let aggregatedData = {}; // To sum up minutes by day, month, or year
-
-    records.forEach(record => {
-        const recordDate = new Date(record.date);
-        let key;
-
-        if (timeUnit === 'day') {
-            key = record.date;
-        } else if (timeUnit === 'month') {
-            key = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
-        } else if (timeUnit === 'year') {
-            key = String(recordDate.getFullYear());
+// --- Screen Management ---
+function showScreen(screenId) {
+    const screens = [homeScreen, timerScreen, recordsScreen];
+    screens.forEach(screen => {
+        if (screen.id === screenId + 'Screen') {
+            screen.classList.remove('hidden');
+            // Trigger reflow to ensure transition plays
+            void screen.offsetWidth;
+            screen.classList.add('visible'); // Add a class for animating in
+            screen.style.opacity = 1;
+            screen.style.transform = 'translateY(0)';
+        } else {
+            screen.classList.remove('visible'); // Remove visibility class
+            screen.style.opacity = 0;
+            screen.style.transform = 'translateY(20px)';
+            // Use a timeout to apply 'hidden' after transition
+            setTimeout(() => {
+                screen.classList.add('hidden');
+            }, 300); // Match CSS transition duration
         }
-
-        if (!aggregatedData[key]) {
-            aggregatedData[key] = { work: 0, break: 0 };
-        }
-        aggregatedData[key].work += (record.workMinutes || 0);
-        aggregatedData[key].break += (record.breakMinutes || 0);
     });
 
-    // Sort keys and populate labels and data arrays
-    const sortedKeys = Object.keys(aggregatedData).sort();
-    if (sortedKeys.length === 0) {
-        return { labels: [], datasets: [] };
-    }
-
-    // Generate labels for the last 7 days, 12 months, or 5 years if data is sparse
-    let generatedLabels = [];
-    if (timeUnit === 'day') {
-        for (let i = 6; i >= 0; i--) { // Last 7 days
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            generatedLabels.push(d.toISOString().slice(0, 10));
-        }
-    } else if (timeUnit === 'month') {
-        for (let i = 11; i >= 0; i--) { // Last 12 months
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
-            generatedLabels.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
-        }
-    } else if (timeUnit === 'year') {
-        const currentYear = new Date().getFullYear();
-        for (let i = 4; i >= 0; i--) { // Last 5 years
-            generatedLabels.push(String(currentYear - i));
-        }
-    }
-
-    labels = Array.from(new Set([...generatedLabels, ...sortedKeys])).sort(); // Combine and sort unique keys
-
-    labels.forEach(label => {
-        workData.push(aggregatedData[label] ? aggregatedData[label].work : 0);
-        breakData.push(aggregatedData[label] ? aggregatedData[label].break : 0);
-    });
-
-    return { labels, workData, breakData };
-}
-
-function renderChart(timeUnit) {
-    const { labels, workData, breakData } = getChartData(timeUnit);
-    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
-    const breakColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim();
-
-    if (recordsChart) {
-        recordsChart.destroy(); // Destroy existing chart before creating a new one
-    }
-
-    if (labels.length === 0) {
-        noDataMessage.classList.remove('hidden');
-        recordsChartCanvas.classList.add('hidden');
-        return;
+    if (screenId === 'home') {
+        currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000);
     } else {
-        noDataMessage.classList.add('hidden');
-        recordsChartCanvas.classList.remove('hidden');
-    }
-
-    recordsChart = new Chart(recordsChartCanvas, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: '集中時間 (分)',
-                    data: workData,
-                    backgroundColor: primaryColor,
-                    borderColor: primaryColor,
-                    borderWidth: 1
-                },
-                {
-                    label: '休憩時間 (分)',
-                    data: breakData,
-                    backgroundColor: breakColor,
-                    borderColor: breakColor,
-                    borderWidth: 1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    stacked: true,
-                    title: {
-                        display: true,
-                        text: timeUnit === 'day' ? '日付' : timeUnit === 'month' ? '月' : '年'
-                    }
-                },
-                y: {
-                    stacked: true,
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: '時間 (分)'
-                    }
-                }
-            },
-            plugins: {
-                tooltip: {
-                    mode: 'index',
-                    intersect: false
-                },
-                legend: {
-                    display: true,
-                    position: 'top'
-                }
-            }
+        if (currentTimeInterval) {
+            clearInterval(currentTimeInterval);
+            currentTimeInterval = null;
         }
-    });
-
-    // Adjust chart width for daily view to prevent bars from being too thin
-    if (timeUnit === 'day' && labels.length > 7) {
-        recordsChartCanvas.style.width = `${labels.length * 50}px`; // Adjust 50px per bar as needed
-    } else {
-        recordsChartCanvas.style.width = '100%';
+    }
+    if (screenId === 'records') {
+        renderRecordsChart(currentChartTimeUnit);
     }
 }
-
 
 // --- Event Listeners ---
 focusButton.addEventListener('click', () => {
-    showScreen(timerScreen);
-    resetTimer(); // Ensure timer is reset when moving to timer screen
+    showScreen('timer');
+    resetTimer(); // Ensure timer is reset when entering focus mode
+    updateDisplay(); // Initialize display
 });
 
 viewRecordsButton.addEventListener('click', () => {
-    showScreen(recordsScreen);
-    renderChart(currentChartTimeUnit); // Render chart when records screen is shown
+    showScreen('records');
+    renderRecordsChart(currentChartTimeUnit);
 });
 
 backToHomeFromTimerButton.addEventListener('click', () => {
-    // Only allow going back if the timer is not running
-    if (!isRunning) {
-        showScreen(homeScreen);
+    if (isRunning || sessionFocusedSeconds > 0 || sessionBreakSeconds > 0) {
+        showCustomAlertDialog(
+            'タイマーを中断してホームに戻りますか？\n現在の集中/休憩時間は保存されません。',
+            () => {
+                resetTimer();
+                stopAlarmSound();
+                showScreen('home');
+            },
+            () => {
+                // Do nothing, stay on timer screen
+            }
+        );
     } else {
-        showCustomAlertDialog('タイマーが実行中です。ホーム画面に戻るには、タイマーを停止または保存してください。', () => {}, () => {
-        });
+        showScreen('home');
+        resetTimer(); // Reset only if no time was accumulated or running
+        stopAlarmSound();
     }
 });
 
 backToHomeFromRecordsButton.addEventListener('click', () => {
-    showScreen(homeScreen);
+    showScreen('home');
+});
+
+startButton.addEventListener('click', startTimer);
+saveProgressButton.addEventListener('click', () => {
+    saveRecord();
+    resetTimer();
+    showScreen('home');
 });
 
 homeScreenSettingsButton.addEventListener('click', () => {
+    // Populate settings modal with current values
     workTimeInput.value = workTime;
     breakTimeInput.value = breakTime;
     themeColorInput.value = themeColor;
@@ -1211,111 +1204,75 @@ homeScreenSettingsButton.addEventListener('click', () => {
     } else {
         clockFormat12.checked = true;
     }
-    // Load alarm sounds when settings open
-    loadAlarmSoundsToSelect();
+    loadAlarmSoundsToSelect(); // Load custom sounds
     settingsModal.classList.remove('hidden');
+    settingsModal.classList.add('visible');
 });
 
 cancelSettingsButton.addEventListener('click', () => {
     settingsModal.classList.add('hidden');
+    settingsModal.classList.remove('visible');
 });
 
 saveSettingsButton.addEventListener('click', () => {
-    const newWorkTime = parseInt(workTimeInput.value);
-    const newBreakTime = parseInt(breakTimeInput.value);
-    const newThemeColor = themeColorInput.value;
-    const newClockFormat = clockFormat24.checked ? '24' : '12';
-    const selectedAlarmId = alarmSoundSelect.value; // Get selected alarm ID
-
-    if (selectedAlarmId === 'add_new') {
-        // If '+' is still selected, prevent saving and prompt user
-        showCustomAlertDialog('新しいアラーム音を追加するか、別の音を選択してください。', () => {}, () => {});
-        return;
-    }
-
-    if (newWorkTime < 1 || newBreakTime < 1) {
-        showCustomAlertDialog('作業時間と休憩時間は1分以上である必要があります。', () => {}, () => {});
-        return;
-    }
-
-    workTime = newWorkTime;
-    breakTime = newBreakTime;
-    themeColor = newThemeColor;
-    clockFormat = newClockFormat;
+    workTime = parseInt(workTimeInput.value);
+    breakTime = parseInt(breakTimeInput.value);
+    themeColor = themeColorInput.value;
+    clockFormat = clockFormat24.checked ? '24' : '12';
 
     localStorage.setItem('pomodoroWorkTime', workTime);
     localStorage.setItem('pomodoroBreakTime', breakTime);
     localStorage.setItem('pomodoroThemeColor', themeColor);
     localStorage.setItem('pomodoroClockFormat', clockFormat);
-    localStorage.setItem('pomodoroAlarmSoundId', selectedAlarmId); // Save selected alarm ID
+    localStorage.setItem('pomodoroAlarmSoundId', alarmSoundSelect.value); // Save selected alarm sound ID
 
-    // Update alarm sound source based on selection
-    if (selectedAlarmId === 'default') {
+    setThemeColors(themeColor); // Apply theme immediately
+    resetTimer(); // Reset timer to apply new work/break times
+    updateDisplay(); // Update display with new times
+    updateCurrentTimeDisplay(); // Update home screen clock format
+
+    // Set actual alarm sound src based on selection
+    if (alarmSoundSelect.value === 'default') {
         alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
     } else {
-        // Find the sound in IndexedDB and set its data URL
         getAlarmSounds().then(sounds => {
-            const selectedSound = sounds.find(s => s.id == selectedAlarmId);
+            const selectedSound = sounds.find(s => s.id == alarmSoundSelect.value);
             if (selectedSound) {
                 alarmSound.src = selectedSound.data;
             } else {
-                // Fallback to default if selected sound is not found (e.g., deleted)
+                // Fallback if selected custom sound is no longer available
                 alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
                 localStorage.setItem('pomodoroAlarmSoundId', 'default');
-                alarmSoundSelect.value = 'default'; // Update select to default
+                alarmSoundSelect.value = 'default';
             }
-        }).catch(err => {
-            console.error("Failed to load selected alarm sound:", err);
-            // Fallback to default if IndexedDB error
-            alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
-            localStorage.setItem('pomodoroAlarmSoundId', 'default');
-            alarmSoundSelect.value = 'default'; // Update select to default
         });
     }
 
-    setThemeColors(themeColor); // Apply new theme color
-    resetTimer(); // Reset timer with new work/break times
-    updateCurrentTimeDisplay(); // Update clock display with new format
     settingsModal.classList.add('hidden');
+    settingsModal.classList.remove('visible');
 });
 
-startButton.addEventListener('click', startTimer);
-saveProgressButton.addEventListener('click', saveProgress);
-
-// Records screen time unit buttons
-dailyViewButton.addEventListener('click', () => {
-    currentChartTimeUnit = 'day';
-    dailyViewButton.classList.add('active');
-    monthlyViewButton.classList.remove('active');
-    yearlyViewButton.classList.remove('active');
-    renderChart(currentChartTimeUnit);
+// Alarm sound selection change handler
+alarmSoundSelect.addEventListener('change', async (event) => {
+    const selectedValue = event.target.value;
+    if (selectedValue === 'add_new') {
+        alarmFileInput.click(); // Trigger file input
+        alarmSoundSelect.value = localStorage.getItem('pomodoroAlarmSoundId') || 'default'; // Revert selection
+    } else if (selectedValue === 'default') {
+        deleteAlarmSoundButton.classList.add('hidden');
+        alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+    } else {
+        deleteAlarmSoundButton.classList.remove('hidden');
+        const sounds = await getAlarmSounds();
+        const selectedSound = sounds.find(s => s.id == selectedValue);
+        if (selectedSound) {
+            alarmSound.src = selectedSound.data;
+        }
+    }
 });
 
-monthlyViewButton.addEventListener('click', () => {
-    currentChartTimeUnit = 'month';
-    dailyViewButton.classList.remove('active');
-    monthlyViewButton.classList.add('active');
-    yearlyViewButton.classList.remove('active');
-    renderChart(currentChartTimeUnit);
-});
-
-yearlyViewButton.addEventListener('click', () => {
-    currentChartTimeUnit = 'year';
-    dailyViewButton.classList.remove('active');
-    monthlyViewButton.classList.remove('active');
-    yearlyViewButton.classList.add('active');
-    renderChart(currentChartTimeUnit);
-});
-
-// --- Alarm sound customisation event listeners ---
-
-// When "+" button is clicked, trigger file input click
-addAlarmSoundButton.addEventListener('click', () => {
-    alarmFileInput.click();
-});
-
-// When a file is selected
-alarmFileInput.addEventListener('change', async (event) => {
+// Handling file input for custom alarm sounds
+alarmFileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
         if (!file.type.startsWith('audio/')) {
@@ -1326,101 +1283,321 @@ alarmFileInput.addEventListener('change', async (event) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const dataUrl = e.target.result;
-            // Ask user for a name for the new alarm sound
-            const soundName = prompt('このアラーム音の名前を入力してください:', file.name.split('.')[0]);
-            if (soundName) {
-                try {
-                    await saveAlarmSound(soundName, dataUrl);
-                    await loadAlarmSoundsToSelect(); // Reload options including the new one
-                    // Automatically select the newly added sound
-                    // Find the ID of the newly added sound (assuming it's the last one)
-                    const sounds = await getAlarmSounds();
-                    const newSound = sounds.find(s => s.name === soundName && s.data === dataUrl);
-                    if (newSound) {
-                        alarmSoundSelect.value = newSound.id;
-                        localStorage.setItem('pomodoroAlarmSoundId', newSound.id);
-                        alarmSound.src = newSound.data; // Set current alarm sound to new one
-                    }
-                    showCustomAlertDialog(`「${soundName}」が追加されました。`, () => {}, () => {});
-                } catch (error) {
-                    console.error("Failed to save alarm sound:", error);
-                    showCustomAlertDialog('アラーム音の保存に失敗しました。', () => {}, () => {});
-                }
-            }
+            const soundName = file.name.split('.').slice(0, -1).join('.'); // Get name without extension
+            await saveAlarmSound(soundName, dataUrl);
+            await loadAlarmSoundsToSelect(); // Reload options including new sound
+            alarmSoundSelect.value = (await getAlarmSounds()).find(s => s.name === soundName && s.data === dataUrl)?.id || 'default'; // Select the newly added sound
+            localStorage.setItem('pomodoroAlarmSoundId', alarmSoundSelect.value); // Save the ID to localStorage
+            alarmSound.src = dataUrl; // Set alarm audio source
+            deleteAlarmSoundButton.classList.remove('hidden'); // Show delete button
         };
-        reader.readAsDataURL(file); // Read file as Data URL
-    }
-    // Reset file input value to allow selecting the same file again if needed
-    alarmFileInput.value = '';
-});
-
-// When alarm sound selection changes
-alarmSoundSelect.addEventListener('change', (event) => {
-    const selectedValue = event.target.value;
-    if (selectedValue === 'add_new') {
-        // If '+' is selected, immediately trigger file input
-        alarmFileInput.click();
-        // Prevent '+' from staying selected, revert to current or default
-        const currentSavedId = localStorage.getItem('pomodoroAlarmSoundId') || 'default';
-        alarmSoundSelect.value = currentSavedId;
-    } else {
-        // If 'default' or a custom sound is selected, show/hide delete button
-        if (selectedValue === 'default') {
-            deleteAlarmSoundButton.classList.add('hidden');
-        } else {
-            deleteAlarmSoundButton.classList.remove('hidden');
-        }
-        // No need to set alarmSound.src here, it will be set on saveSettingsButton click
-        // But for immediate preview, you could add: alarmSound.src = ...; alarmSound.play();
+        reader.readAsDataURL(file);
     }
 });
 
-// Delete alarm sound
-deleteAlarmSoundButton.addEventListener('click', () => {
+deleteAlarmSoundButton.addEventListener('click', async () => {
     const selectedId = alarmSoundSelect.value;
-    if (selectedId === 'default' || selectedId === 'add_new') {
-        showCustomAlertDialog('「デフォルト」または「+」は削除できません。', () => {}, () => {});
-        return;
-    }
-
-    showCustomAlertDialog('このアラーム音を削除してもよろしいですか？', async () => {
-        try {
-            await deleteAlarmSound(parseInt(selectedId)); // Ensure ID is integer for IndexedDB
-            await loadAlarmSoundsToSelect(); // Reload options after deletion
+    if (selectedId !== 'default') {
+        showCustomAlertDialog('選択したアラーム音を削除しますか？', async () => {
+            await deleteAlarmSound(parseInt(selectedId));
+            await loadAlarmSoundsToSelect();
+            localStorage.setItem('pomodoroAlarmSoundId', alarmSoundSelect.value); // Update localStorage after deletion
             // If the deleted sound was currently selected, revert to default
-            if (localStorage.getItem('pomodoroAlarmSoundId') == selectedId) {
-                localStorage.setItem('pomodoroAlarmSoundId', 'default');
+            if (alarmSoundSelect.value === selectedId) {
                 alarmSoundSelect.value = 'default';
                 alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+                deleteAlarmSoundButton.classList.add('hidden');
             }
-            showCustomAlertDialog('アラーム音が削除されました。', () => {}, () => {});
-        } catch (error) {
-            console.error("Failed to delete alarm sound:", error);
-            showCustomAlertDialog('アラーム音の削除に失敗しました。', () => {}, () => {});
+        }, () => {});
+    }
+});
+
+stopAlarmButton.addEventListener('click', stopAlarmSound); // NEW: Stop alarm button handler
+
+// --- Chart.js for Records ---
+function renderRecordsChart(timeUnit) {
+    const records = JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]');
+    if (records.length === 0) {
+        noDataMessage.classList.remove('hidden');
+        if (recordsChart) {
+            recordsChart.destroy(); // Destroy existing chart if no data
+            recordsChart = null;
         }
-    }, () => {
-        // User canceled deletion
+        recordsChartCanvas.classList.add('hidden'); // Hide canvas if no data
+        return;
+    } else {
+        noDataMessage.classList.add('hidden');
+        recordsChartCanvas.classList.remove('hidden');
+    }
+
+    const processedData = processRecordsForChart(records, timeUnit);
+    const labels = processedData.map(d => d.label);
+    const focusedData = processedData.map(d => d.focused);
+    const breakData = processedData.map(d => d.break);
+
+    if (recordsChart) {
+        recordsChart.destroy(); // Destroy existing chart before creating a new one
+    }
+
+    recordsChart = new Chart(recordsChartCanvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '集中時間 (分)',
+                    data: focusedData,
+                    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(),
+                    borderRadius: 4
+                },
+                {
+                    label: '休憩時間 (分)',
+                    data: breakData,
+                    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim(),
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y + '分';
+                            }
+                            return label;
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14,
+                            family: 'Inter, sans-serif'
+                        },
+                        color: 'var(--on-surface)'
+                    }
+                },
+                title: {
+                    display: true,
+                    text: getChartTitle(timeUnit),
+                    font: {
+                        size: 18,
+                        family: 'Inter, sans-serif',
+                        weight: '600'
+                    },
+                    color: 'var(--on-surface)'
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            family: 'Inter, sans-serif'
+                        },
+                        color: 'var(--on-surface)'
+                    },
+                    title: {
+                        display: true,
+                        text: getXAxisTitle(timeUnit),
+                        font: {
+                            family: 'Inter, sans-serif',
+                            weight: '500'
+                        },
+                        color: 'var(--on-surface)'
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '分';
+                        },
+                        font: {
+                            family: 'Inter, sans-serif'
+                        },
+                        color: 'var(--on-surface)'
+                    },
+                    grid: {
+                        color: '#e0e0e0'
+                    },
+                    title: {
+                        display: true,
+                        text: '時間 (分)',
+                        font: {
+                            family: 'Inter, sans-serif',
+                            weight: '500'
+                        },
+                        color: 'var(--on-surface)'
+                    }
+                }
+            }
+        }
     });
+
+    // Adjust chart canvas width for daily view if many days
+    if (timeUnit === 'day' && labels.length > 7) {
+        recordsChartCanvas.style.minWidth = `${labels.length * 60}px`; // Approx 60px per bar
+    } else {
+        recordsChartCanvas.style.minWidth = 'unset';
+    }
+}
+
+function processRecordsForChart(records, timeUnit) {
+    const dataMap = new Map();
+
+    records.forEach(record => {
+        const date = new Date(record.date);
+        let key;
+        let label;
+
+        if (timeUnit === 'day') {
+            key = record.date; // YYYY-MM-DD
+            label = `${date.getMonth() + 1}/${date.getDate()}`; // M/D
+        } else if (timeUnit === 'month') {
+            key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+            label = `${date.getMonth() + 1}月`;
+        } else if (timeUnit === 'year') {
+            key = String(date.getFullYear()); // YYYY
+            label = `${date.getFullYear()}年`;
+        }
+
+        if (!dataMap.has(key)) {
+            dataMap.set(key, { focused: 0, break: 0, label: label, date: date });
+        }
+        const entry = dataMap.get(key);
+        entry.focused += record.focusedMinutes;
+        entry.break += record.breakMinutes;
+    });
+
+    // Convert map values to array and sort by date
+    const sortedData = Array.from(dataMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // Fill in missing dates/months/years for better chart representation
+    const filledData = [];
+    if (sortedData.length > 0) {
+        let currentDate = new Date(sortedData[0].date);
+        const endDate = new Date(sortedData[sortedData.length - 1].date);
+
+        while (currentDate <= endDate) {
+            let key;
+            let label;
+            let foundEntry = null;
+
+            if (timeUnit === 'day') {
+                key = currentDate.toISOString().split('T')[0];
+                label = `${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
+                foundEntry = sortedData.find(d => d.label === label && d.date.getFullYear() === currentDate.getFullYear());
+                currentDate.setDate(currentDate.getDate() + 1);
+            } else if (timeUnit === 'month') {
+                key = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                label = `${currentDate.getMonth() + 1}月`;
+                foundEntry = sortedData.find(d => d.label === label && d.date.getFullYear() === currentDate.getFullYear());
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            } else if (timeUnit === 'year') {
+                key = String(currentDate.getFullYear());
+                label = `${currentDate.getFullYear()}年`;
+                foundEntry = sortedData.find(d => d.label === label);
+                currentDate.setFullYear(currentDate.getFullYear() + 1);
+            }
+
+            if (foundEntry) {
+                filledData.push(foundEntry);
+            } else {
+                filledData.push({ focused: 0, break: 0, label: label, date: new Date(key) });
+            }
+        }
+    }
+
+    return filledData;
+}
+
+function getChartTitle(timeUnit) {
+    switch (timeUnit) {
+        case 'day': return '日別集中・休憩時間';
+        case 'month': return '月別集中・休憩時間';
+        case 'year': return '年別集中・休憩時間';
+        default: return '集中・休憩時間の記録';
+    }
+}
+
+function getXAxisTitle(timeUnit) {
+    switch (timeUnit) {
+        case 'day': return '日付';
+        case 'month': return '月';
+        case 'year': return '年';
+        default: return '単位';
+    }
+}
+
+dailyViewButton.addEventListener('click', () => {
+    currentChartTimeUnit = 'day';
+    dailyViewButton.classList.add('active');
+    monthlyViewButton.classList.remove('active');
+    yearlyViewButton.classList.remove('active');
+    renderRecordsChart(currentChartTimeUnit);
 });
 
-// NEW: Stop alarm button event listener
-stopAlarmButton.addEventListener('click', stopAlarmSound);
+monthlyViewButton.addEventListener('click', () => {
+    currentChartTimeUnit = 'month';
+    monthlyViewButton.classList.add('active');
+    dailyViewButton.classList.remove('active');
+    yearlyViewButton.classList.remove('active');
+    renderRecordsChart(currentChartTimeUnit);
+});
 
-// --- Initialization ---
-document.addEventListener('DOMContentLoaded', async () => { // Made async to await IndexedDB
-    setThemeColors(themeColor); // Apply initial theme
-    updateDisplay(); // Initialize timer display
-    showScreen(homeScreen); // Start on the home screen
-    updateCurrentTimeDisplay(); // Display current time immediately
-    currentTimeInterval = setInterval(updateCurrentTimeDisplay, 1000); // Start clock update interval
+yearlyViewButton.addEventListener('click', () => {
+    currentChartTimeUnit = 'year';
+    yearlyViewButton.classList.add('active');
+    dailyViewButton.classList.remove('active');
+    monthlyViewButton.classList.remove('active');
+    renderRecordsChart(currentChartTimeUnit);
+});
 
-    // Add a global click listener to unlock audio as soon as possible
-    document.body.addEventListener('click', unlockAudio, { once: true });
 
-    // Initialize IndexedDB and load sounds on page load
-    await openIndexedDB();
+// --- Initial Setup ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // Apply saved theme color
+    setThemeColors(themeColor);
+
+    // Set initial clock format for home screen
+    if (clockFormat === '24') {
+        clockFormat24.checked = true;
+    } else {
+        clockFormat12.checked = true;
+    }
+
+    // Initialize display with current work time
+    updateDisplay();
+
+    // Show home screen initially and start updating clock
+    showScreen('home');
+
+    // Load custom alarm sounds
+    await openIndexedDB(); // Open DB when DOM is ready
     await loadAlarmSoundsToSelect();
+
+    // Add a global click listener to unlock audio for browsers
+    // that require user interaction for audio playback.
+    document.body.addEventListener('click', unlockAudio, { once: true });
 });
-</script>
+
+    </script>
   </body>
 </html>
