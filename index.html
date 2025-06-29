@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ポモドーロタイマー</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Inter Font (slightly bolder weights) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Material Icons (Google Fonts) -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Chart.js for graphing -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         /* Define CSS Custom Properties for theme colors */
@@ -31,62 +35,68 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 24px; /* Slightly more padding for material feel */
+            padding: 24px;
             box-sizing: border-box;
             overflow-x: hidden;
-            color: var(--on-surface); /* Default text color */
+            color: var(--on-surface);
+            line-height: 1.5; /* Improved readability */
         }
 
         .screen {
             background-color: var(--surface-color);
-            border-radius: 20px; /* More rounded corners for Material 3 */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08); /* More refined shadow */
-            padding: 32px;
+            border-radius: 28px; /* Significantly more rounded corners for Material You */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1); /* Stronger, layered shadow */
+            padding: 36px; /* More generous padding */
             width: 100%;
-            max-width: 440px; /* Slightly wider max-width */
+            max-width: 480px; /* Wider max-width for modern feel */
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
-            min-height: 480px; /* Ensure consistent card size */
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* For screen transitions */
+            min-height: 520px; /* Ensure consistent card size */
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Material-like easing */
         }
 
         .screen.hidden {
             display: none !important;
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(30px); /* Larger offset for animation */
+        }
+        .screen.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         /* Timer Screen specific styles */
         #timerScreen .timer-display {
-            font-size: 7rem; /* Even larger timer font */
-            font-weight: 700;
+            font-size: 8rem; /* Even larger timer font */
+            font-weight: 800; /* Extra bold for timer */
             color: var(--primary-color);
-            margin-bottom: 28px;
-            letter-spacing: -3px;
+            margin-bottom: 32px; /* More space */
+            letter-spacing: -4px; /* More pronounced letter spacing */
+            line-height: 1; /* Prevent extra space above/below */
         }
 
         .button-group {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 16px;
-            margin-top: 24px;
+            gap: 20px; /* More space between buttons */
+            margin-top: 32px;
         }
 
         .button-primary {
             background-color: var(--primary-color);
             color: var(--on-primary);
-            padding: 18px 36px; /* Larger padding */
-            border-radius: 36px; /* More pill-shaped */
-            font-size: 1.6rem; /* Slightly larger font */
-            font-weight: 600; /* Medium weight */
+            padding: 20px 40px; /* Larger padding */
+            border-radius: 40px; /* Very rounded, FAB-like */
+            font-size: 1.8rem; /* Larger font */
+            font-weight: 700; /* Bolder weight */
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Stronger shadow for primary action */
+            gap: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12); /* Stronger shadow */
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             cursor: pointer;
             border: none;
@@ -96,8 +106,8 @@
 
         .button-primary:hover {
             background-color: var(--primary-color-dark);
-            transform: translateY(-3px); /* More pronounced lift */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+            transform: translateY(-4px); /* More pronounced lift */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15); /* Stronger shadow on hover */
         }
 
         .button-primary:active {
@@ -106,17 +116,17 @@
         }
 
         .button-secondary {
-            background-color: #e0e0e0; /* Light grey for secondary */
-            color: var(--on-surface);
-            padding: 16px 28px;
-            border-radius: 32px;
-            font-size: 1.5rem;
-            font-weight: 500;
+            background-color: #e8eaf6; /* Light indigo background */
+            color: #3f51b5; /* Indigo text color */
+            padding: 18px 32px;
+            border-radius: 36px;
+            font-size: 1.6rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Lighter shadow */
+            gap: 10px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow */
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             cursor: pointer;
             border: none;
@@ -125,9 +135,9 @@
         }
 
         .button-secondary:hover {
-            background-color: #d0d0d0; /* Darker grey on hover */
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+            background-color: #c5cae9; /* Darker indigo on hover */
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
         }
 
         .button-secondary:active {
@@ -138,13 +148,13 @@
         .icon-button {
             background-color: transparent;
             border: none;
-            font-size: 2.4rem; /* Larger icons */
+            font-size: 2.8rem; /* Larger icons */
             color: var(--text-light);
             cursor: pointer;
             transition: color 0.3s ease, background-color 0.3s ease;
             outline: none;
-            border-radius: 50%; /* Circular hit area */
-            padding: 8px;
+            border-radius: 50%;
+            padding: 12px; /* Larger tap area */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -152,20 +162,20 @@
 
         .icon-button:hover {
             color: var(--on-surface);
-            background-color: rgba(0, 0, 0, 0.04); /* Subtle hover effect */
+            background-color: rgba(0, 0, 0, 0.06); /* More visible hover effect */
         }
 
         .icon-button.top-right {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 24px; /* More space from edge */
+            right: 24px;
         }
 
         .icon-button.top-left {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 2rem; /* Slightly smaller for back button */
+            top: 24px;
+            left: 24px;
+            font-size: 2.4rem; /* Slightly smaller for back button */
         }
 
         /* Modal / Dialog Styles */
@@ -175,7 +185,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.4); /* Slightly lighter overlay */
+            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay for focus */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -190,13 +200,13 @@
 
         .modal-content {
             background-color: var(--surface-color);
-            padding: 28px; /* More padding */
-            border-radius: 12px; /* Slightly less rounded than cards */
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            border-radius: 20px; /* Consistent rounded corners */
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.15);
             width: 90%;
-            max-width: 480px; /* Wider modal */
-            transform: translateY(20px);
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            max-width: 500px; /* Wider modal */
+            transform: translateY(30px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .modal-overlay.visible .modal-content {
@@ -205,38 +215,39 @@
         }
 
         .modal-header {
-            font-size: 1.8rem; /* Larger header */
-            font-weight: 600;
-            margin-bottom: 24px;
+            font-size: 2rem; /* Larger header */
+            font-weight: 700;
+            margin-bottom: 28px; /* More space */
             color: var(--on-surface);
         }
 
         .modal-body label {
             display: flex;
             align-items: center;
-            margin-bottom: 16px; /* More space between labels */
-            font-size: 1.1rem;
+            margin-bottom: 20px; /* More space between labels */
+            font-size: 1.2rem; /* Larger font */
             color: var(--on-surface);
+            font-weight: 500;
         }
 
         .modal-body input[type="number"],
         .modal-body input[type="color"],
         .modal-body select {
             flex-grow: 1;
-            margin-left: 12px; /* More space */
-            padding: 10px 14px; /* More padding */
+            margin-left: 16px; /* More space */
+            padding: 12px 16px; /* More padding */
             border: 1px solid var(--outline-color);
-            border-radius: 8px; /* Slightly more rounded inputs */
-            font-size: 1rem;
+            border-radius: 12px; /* More rounded inputs */
+            font-size: 1.1rem;
             outline: none;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
-            background-color: #fcfcfc; /* Slight off-white for inputs */
+            background-color: #fcfcfc;
         }
 
         .modal-body input[type="color"] {
             padding: 0;
-            width: 60px; /* Adjust width for color picker */
-            height: 44px; /* Adjust height for color picker */
+            width: 70px; /* Adjust width for color picker */
+            height: 50px; /* Adjust height for color picker */
             cursor: pointer;
         }
 
@@ -244,28 +255,28 @@
         .modal-body input[type="color"]:focus,
         .modal-body select:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.2); /* Use RGB for transparent shadow */
+            box-shadow: 0 0 0 4px rgba(var(--primary-color-rgb), 0.3); /* Stronger shadow */
         }
 
         .modal-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
-            margin-top: 24px;
+            gap: 16px; /* More space */
+            margin-top: 32px;
         }
 
         .modal-actions button {
-            padding: 10px 20px;
-            border-radius: 8px; /* Rounded buttons in modal */
-            font-size: 1rem;
-            font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 12px; /* Rounded buttons in modal */
+            font-size: 1.1rem;
+            font-weight: 600;
             cursor: pointer;
             border: none;
             transition: background-color 0.3s ease, box-shadow 0.2s ease;
         }
 
         .modal-actions .button-cancel {
-            background-color: #e0e0e0; /* Light grey */
+            background-color: #e0e0e0;
             color: var(--on-surface);
         }
 
@@ -275,81 +286,82 @@
         }
 
         .modal-actions .button-save {
-            background-color: var(--secondary-period-color); /* Green for save */
+            background-color: var(--secondary-period-color);
             color: var(--on-primary);
         }
 
         .modal-actions .button-save:hover {
-            background-color: #059669; /* Darker green on hover */
+            background-color: #059669;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
         /* Custom Alert Dialog */
         .custom-alert-dialog {
             background-color: var(--surface-color);
-            padding: 28px;
-            border-radius: 12px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.15);
             width: 90%;
-            max-width: 400px;
+            max-width: 450px;
             text-align: center;
         }
 
         .custom-alert-dialog p {
-            font-size: 1.15rem; /* Slightly larger message */
-            margin-bottom: 28px;
+            font-size: 1.25rem; /* Larger message */
+            margin-bottom: 32px;
             color: var(--on-surface);
             line-height: 1.6;
+            font-weight: 500;
         }
 
         /* Home Screen specific styles */
         #homeScreen .current-time {
-            font-size: 4.5rem; /* Clock bigger */
-            font-weight: 600;
+            font-size: 5rem; /* Even bigger clock */
+            font-weight: 700;
             color: var(--on-surface);
-            margin-top: 30px;
-            margin-bottom: 50px;
+            margin-top: 40px;
+            margin-bottom: 60px; /* More space */
         }
 
         #homeScreen .home-buttons {
             display: flex;
             flex-direction: column;
-            gap: 24px; /* More space between buttons */
+            gap: 28px; /* More space between buttons */
             width: 100%;
         }
 
         #homeScreen .home-button {
             background-color: var(--primary-color);
             color: var(--on-primary);
-            padding: 22px; /* More padding */
-            border-radius: 16px; /* Slightly more rounded than common buttons */
-            font-size: 1.9rem; /* Larger font */
+            padding: 24px; /* More padding */
+            border-radius: 20px; /* Consistent rounded corners */
+            font-size: 2rem; /* Larger font */
             font-weight: 600;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             cursor: pointer;
             border: none;
             outline: none;
             text-align: center;
-            display: flex; /* For icon and text alignment */
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 16px; /* More space between icon and text */
         }
 
         #homeScreen .home-button .material-icons {
-            font-size: 2.2rem; /* Icon size */
+            font-size: 2.4rem; /* Icon size */
         }
 
         #homeScreen .home-button:hover {
             background-color: var(--primary-color-dark);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.2);
         }
 
         #homeScreen .home-button:active {
             transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
         }
 
         /* Records Screen specific styles */
@@ -358,33 +370,33 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
 
         #recordsScreen .records-header h2 {
-            font-size: 2rem; /* Larger header */
+            font-size: 2.2rem; /* Larger header */
             font-weight: 700;
             color: var(--on-surface);
-            margin-left: auto; /* Center the title, pushing button to left */
+            margin-left: auto;
             margin-right: auto;
         }
 
         #recordsScreen .records-time-unit-buttons {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 16px; /* More space */
             margin-top: 15px;
-            margin-bottom: 24px; /* More space */
+            margin-bottom: 28px;
             width: 100%;
         }
 
         #recordsScreen .records-time-unit-buttons button {
-            background-color: #e0e0e0; /* Light grey */
+            background-color: #e0e0e0;
             color: var(--on-surface);
-            padding: 10px 18px;
-            border-radius: 10px; /* Slightly more rounded */
-            font-size: 1rem;
-            font-weight: 500;
+            padding: 12px 20px;
+            border-radius: 12px; /* More rounded */
+            font-size: 1.1rem;
+            font-weight: 600;
             cursor: pointer;
             border: none;
             outline: none;
@@ -409,68 +421,66 @@
         }
         #recordsChartCanvas {
             width: 100% !important;
-            height: 320px !important; /* Slightly taller chart */
-            min-width: 400px; /* Minimum width to prevent excessive squeezing for daily view */
+            height: 350px !important; /* Taller chart */
+            min-width: 450px; /* Minimum width to prevent excessive squeezing for daily view */
         }
 
         /* Progress Bar styles */
         .progress-container {
-            width: 90%;
-            height: 14px; /* Thicker progress bar */
+            width: 95%; /* Wider progress bar */
+            height: 16px; /* Thicker progress bar */
             background-color: #e5e7eb;
-            border-radius: 7px; /* Matches height for full roundness */
-            margin-top: 24px;
+            border-radius: 8px; /* Matches height for full roundness */
+            margin-top: 28px;
             overflow: hidden;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.15); /* More prominent inner shadow */
         }
 
         .progress-bar {
             height: 100%;
             width: 0%;
             background-color: var(--primary-color);
-            border-radius: 7px;
+            border-radius: 8px;
             transition: width 0.9s linear;
         }
 
         /* Session info text */
         #timerScreen .session-info {
-            font-size: 1.15rem;
+            font-size: 1.2rem;
             color: var(--on-surface);
             text-align: center;
-            margin-top: 24px;
+            margin-top: 28px; /* More space */
         }
 
         #timerScreen .session-info span {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
+            margin-bottom: 10px; /* More space between lines */
+            font-weight: 600;
         }
 
         /* Radio button and select styles */
         input[type="radio"] {
-            /* Basic styling for consistency */
-            margin-right: 8px;
-            transform: scale(1.1); /* Slightly larger radio buttons */
-            accent-color: var(--primary-color); /* Highlight color */
+            margin-right: 10px; /* More space */
+            transform: scale(1.2); /* Larger radio buttons */
+            accent-color: var(--primary-color);
         }
 
         select {
-            /* Custom select arrow */
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 20px;
-            padding-right: 40px; /* Space for the arrow */
+            background-position: right 14px center; /* Adjust arrow position */
+            background-size: 24px; /* Larger arrow */
+            padding-right: 48px; /* Space for the arrow */
         }
 
         .material-icons {
             font-family: 'Material Icons';
             font-weight: normal;
             font-style: normal;
-            font-size: 24px;  /* Preferred icon size */
+            font-size: 24px;
             display: inline-block;
             line-height: 1;
             text-transform: none;
@@ -486,6 +496,7 @@
     </style>
   </head>
   <body>
+    <!-- Home Screen -->
     <div id="homeScreen" class="screen">
       <button id="homeScreenSettingsButton" class="icon-button top-right">
         <span class="material-icons">settings</span>
@@ -501,6 +512,7 @@
       </div>
     </div>
 
+    <!-- Timer Screen -->
     <div id="timerScreen" class="screen hidden">
       <button id="backToHomeFromTimerButton" class="icon-button top-left">
         <span class="material-icons">arrow_back</span>
@@ -529,6 +541,7 @@
       </button>
     </div>
 
+    <!-- Records Screen -->
     <div id="recordsScreen" class="screen hidden">
       <div class="records-header">
         <button id="backToHomeFromRecordsButton" class="icon-button top-left">
@@ -547,6 +560,7 @@
       <p id="noDataMessage" class="text-gray-600 mt-4 hidden">まだ記録がありません。</p>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay hidden">
       <div class="modal-content">
         <h2 class="modal-header">設定</h2>
@@ -572,11 +586,11 @@
             <div class="flex items-center mt-2 w-full">
               <select id="alarmSoundSelect" class="flex-grow mr-2 p-2 border border-gray-300 rounded-md"></select>
               <input type="file" id="alarmFileInput" accept="audio/mpeg, audio/wav, audio/ogg" class="hidden">
-              <button id="addAlarmSoundButton" class="button-secondary p-2">
-                <span class="material-icons">add</span>
+              <button id="addAlarmSoundButton" class="button-secondary p-2 !rounded-lg !shadow-none !text-base">
+                <span class="material-icons !text-xl">add</span>
               </button>
-              <button id="deleteAlarmSoundButton" class="bg-red-500 text-white p-2 ml-2 rounded-md hover:bg-red-600 transition-colors duration-200">
-                <span class="material-icons">delete</span>
+              <button id="deleteAlarmSoundButton" class="bg-red-500 text-white p-2 ml-2 !rounded-lg hover:bg-red-600 transition-colors duration-200 !shadow-none !text-base">
+                <span class="material-icons !text-xl">delete</span>
               </button>
             </div>
           </label>
@@ -590,6 +604,7 @@
 
     <audio id="alarmSound" src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3" preload="auto"></audio>
 
+    <!-- Custom Alert/Confirm Dialog -->
     <div id="customAlertDialog" class="modal-overlay hidden">
       <div class="custom-alert-dialog">
         <p id="alertMessage"></p>
@@ -623,17 +638,16 @@ const workTimeInput = document.getElementById('workTimeInput');
 const breakTimeInput = document.getElementById('breakTimeInput');
 const themeColorInput = document.getElementById('themeColorInput');
 const clockFormat24 = document.getElementById('clockFormat24');
-const clockFormat12 = document.getElementById('clockFormat12'); // Fixed typo
+const clockFormat12 = document.getElementById('clockFormat12');
 const saveSettingsButton = document.getElementById('saveSettingsButton');
 const cancelSettingsButton = document.getElementById('cancelSettingsButton');
 
-// --- NEW: Alarm Sound Elements ---
+// --- Alarm Sound Elements ---
 const alarmSoundSelect = document.getElementById('alarmSoundSelect');
 const alarmFileInput = document.getElementById('alarmFileInput');
 const addAlarmSoundButton = document.getElementById('addAlarmSoundButton');
 const deleteAlarmSoundButton = document.getElementById('deleteAlarmSoundButton');
 const stopAlarmButton = document.getElementById('stopAlarmButton');
-// --- END NEW ---
 
 const customAlertDialog = document.getElementById('customAlertDialog');
 const alertMessage = document.getElementById('alertMessage');
@@ -668,8 +682,8 @@ let isWorkPeriod = true; // true for work, false for break
 let currentTimeInterval = null; // For home screen clock (global scope)
 
 // Session accumulated times (reset on full cycle completion or manual save)
-let sessionFocusedSeconds = 0; // Changed to seconds for more accurate tracking
-let sessionBreakSeconds = 0; // Changed to seconds for more accurate tracking
+let sessionFocusedSeconds = 0;
+let sessionBreakSeconds = 0;
 
 const RECORDS_KEY = 'pomodoroRecords';
 let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
@@ -677,9 +691,9 @@ let currentChartTimeUnit = 'day'; // 'day', 'month', 'year'
 // --- Audio ---
 const alarmSound = document.getElementById('alarmSound'); // audio要素を取得
 let audioUnlocked = false; // Add a flag to track if audio context is unlocked
-let isAlarmPlaying = false; // NEW: Track if alarm is currently playing
+let isAlarmPlaying = false; // Track if alarm is currently playing
 
-// --- NEW: Alarm Sound Storage (IndexedDB) ---
+// --- Alarm Sound Storage (IndexedDB) ---
 const DB_NAME = 'pomodoro_db';
 const STORE_NAME = 'alarm_sounds';
 let db;
@@ -776,7 +790,7 @@ async function loadAlarmSoundsToSelect() {
         deleteAlarmSoundButton.classList.add('hidden'); // Hide delete button for default
     } else if (savedAlarmId === 'add_new') {
         // If '+' was selected previously (shouldn't happen on load if logic is correct)
-        // Reset to default or handle error. For now, reset to default.
+        // Revert to default or handle error. For now, revert to default.
         alarmSoundSelect.value = 'default';
         alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
         localStorage.setItem('pomodoroAlarmSoundId', 'default');
@@ -795,23 +809,20 @@ async function loadAlarmSoundsToSelect() {
         }
     }
 }
-// --- END NEW ---
 
 function playAlarmSound() {
     // Stop any currently playing alarm to avoid overlaps
     alarmSound.pause();
     alarmSound.currentTime = 0;
 
-    // Only attempt to play if audio has been unlocked or is allowed
     if (audioUnlocked) {
         alarmSound.volume = 0.5;
         alarmSound.play().then(() => {
-            isAlarmPlaying = true; // Alarm started playing
-            stopAlarmButton.classList.remove('hidden'); // Show the stop alarm button
+            isAlarmPlaying = true;
+            stopAlarmButton.classList.remove('hidden');
         }).catch(error => {
             console.warn("アラーム音の再生に失敗しました:", error);
             if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
-                // NotAllowedError is common if user hasn't interacted, AbortError can also happen
                 showCustomAlertDialog('アラーム音の再生には、ページとのインタラクション（例: 開始ボタンのクリック）が必要です。', () => {}, () => {});
             } else if (error.name === 'NotSupportedError') {
                  showCustomAlertDialog('このアラーム音は再生できませんでした。別のファイルをお試しください。', () => {}, () => {});
@@ -820,19 +831,18 @@ function playAlarmSound() {
     } else {
         console.log("Audio not unlocked yet. Waiting for user interaction.");
         // Try to unlock audio context silently on first user interaction
-        // This is a common pattern to bypass browser autoplay policies
-        alarmSound.volume = 0; // Play silently to try and unlock
+        alarmSound.volume = 0;
         alarmSound.play().then(() => {
             alarmSound.pause();
             alarmSound.currentTime = 0;
-            alarmSound.volume = 0.5; // Reset volume
+            alarmSound.volume = 0.5;
             audioUnlocked = true;
             console.log("Audio unlocked silently.");
-            // Now that it's unlocked, try playing the actual alarm sound again
-            playAlarmSound();
+            playAlarmSound(); // Now that it's unlocked, try playing the actual alarm sound again
         }).catch(error => {
             console.warn("Silent audio unlock failed:", error);
-            // If silent unlock fails, we'll need a direct user interaction
+            // If silent unlock fails, we'll need a direct user interaction for audio.
+            showCustomAlertDialog('アラーム音の再生には、ページとのインタラクションが必要です。', () => {}, () => {});
         });
     }
 }
@@ -842,7 +852,7 @@ function stopAlarmSound() {
         alarmSound.pause();
         alarmSound.currentTime = 0;
         isAlarmPlaying = false;
-        stopAlarmButton.classList.add('hidden'); // Hide the stop alarm button
+        stopAlarmButton.classList.add('hidden');
     }
 }
 
@@ -854,7 +864,7 @@ function unlockAudio() {
         alarmSound.play().then(() => {
             alarmSound.pause();
             alarmSound.currentTime = 0;
-            alarmSound.volume = 0.5; // Reset volume
+            alarmSound.volume = 0.5;
             audioUnlocked = true;
             console.log("Audio unlocked by user interaction.");
         }).catch(error => {
@@ -1098,16 +1108,21 @@ function showCustomAlertDialog(message, onOk, onCancel) {
 
     const handleOk = () => {
         onOk();
-        customAlertDialog.classList.add('hidden');
         customAlertDialog.classList.remove('visible');
+        // Use a timeout to apply 'hidden' after transition
+        setTimeout(() => {
+            customAlertDialog.classList.add('hidden');
+        }, 300); // Match CSS transition duration
         alertOkButton.removeEventListener('click', handleOk);
         alertCancelButton.removeEventListener('click', handleCancel);
     };
 
     const handleCancel = () => {
         if (onCancel) onCancel();
-        customAlertDialog.classList.add('hidden');
         customAlertDialog.classList.remove('visible');
+        setTimeout(() => {
+            customAlertDialog.classList.add('hidden');
+        }, 300);
         alertOkButton.removeEventListener('click', handleOk);
         alertCancelButton.removeEventListener('click', handleCancel);
     };
@@ -1124,17 +1139,13 @@ function showScreen(screenId) {
             screen.classList.remove('hidden');
             // Trigger reflow to ensure transition plays
             void screen.offsetWidth;
-            screen.classList.add('visible'); // Add a class for animating in
-            screen.style.opacity = 1;
-            screen.style.transform = 'translateY(0)';
+            screen.classList.add('visible');
         } else {
-            screen.classList.remove('visible'); // Remove visibility class
-            screen.style.opacity = 0;
-            screen.style.transform = 'translateY(20px)';
+            screen.classList.remove('visible');
             // Use a timeout to apply 'hidden' after transition
             setTimeout(() => {
                 screen.classList.add('hidden');
-            }, 300); // Match CSS transition duration
+            }, 400); // Match CSS transition duration
         }
     });
 
@@ -1210,8 +1221,10 @@ homeScreenSettingsButton.addEventListener('click', () => {
 });
 
 cancelSettingsButton.addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
     settingsModal.classList.remove('visible');
+    setTimeout(() => {
+        settingsModal.classList.add('hidden');
+    }, 300);
 });
 
 saveSettingsButton.addEventListener('click', () => {
@@ -1228,6 +1241,7 @@ saveSettingsButton.addEventListener('click', () => {
 
     setThemeColors(themeColor); // Apply theme immediately
     resetTimer(); // Reset timer to apply new work/break times
+    console.log("設定が保存されました。新しい作業時間:", workTime, "リセット後の現在の時間:", currentTimeInSeconds); // Debugging line
     updateDisplay(); // Update display with new times
     updateCurrentTimeDisplay(); // Update home screen clock format
 
@@ -1248,8 +1262,10 @@ saveSettingsButton.addEventListener('click', () => {
         });
     }
 
-    settingsModal.classList.add('hidden');
     settingsModal.classList.remove('visible');
+    setTimeout(() => {
+        settingsModal.classList.add('hidden');
+    }, 300);
 });
 
 // Alarm sound selection change handler
@@ -1284,12 +1300,28 @@ alarmFileInput.addEventListener('change', (event) => {
         reader.onload = async (e) => {
             const dataUrl = e.target.result;
             const soundName = file.name.split('.').slice(0, -1).join('.'); // Get name without extension
-            await saveAlarmSound(soundName, dataUrl);
-            await loadAlarmSoundsToSelect(); // Reload options including new sound
-            alarmSoundSelect.value = (await getAlarmSounds()).find(s => s.name === soundName && s.data === dataUrl)?.id || 'default'; // Select the newly added sound
-            localStorage.setItem('pomodoroAlarmSoundId', alarmSoundSelect.value); // Save the ID to localStorage
-            alarmSound.src = dataUrl; // Set alarm audio source
-            deleteAlarmSoundButton.classList.remove('hidden'); // Show delete button
+            try {
+                await saveAlarmSound(soundName, dataUrl);
+                await loadAlarmSoundsToSelect(); // Reload options including new sound
+                // Attempt to select the newly added sound by finding its ID
+                const newlyAddedSound = (await getAlarmSounds()).find(s => s.name === soundName && s.data === dataUrl);
+                if (newlyAddedSound) {
+                    alarmSoundSelect.value = newlyAddedSound.id;
+                    localStorage.setItem('pomodoroAlarmSoundId', newlyAddedSound.id);
+                    alarmSound.src = dataUrl; // Set alarm audio source
+                    deleteAlarmSoundButton.classList.remove('hidden'); // Show delete button
+                } else {
+                    // Fallback if for some reason the sound couldn't be found after saving
+                    console.warn("Newly added sound not found in select list, reverting to default.");
+                    alarmSoundSelect.value = 'default';
+                    alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+                    localStorage.setItem('pomodoroAlarmSoundId', 'default');
+                    deleteAlarmSoundButton.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error("Failed to save or load alarm sound:", error);
+                showCustomAlertDialog('アラーム音の保存に失敗しました。', () => {}, () => {});
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -1299,20 +1331,41 @@ deleteAlarmSoundButton.addEventListener('click', async () => {
     const selectedId = alarmSoundSelect.value;
     if (selectedId !== 'default') {
         showCustomAlertDialog('選択したアラーム音を削除しますか？', async () => {
-            await deleteAlarmSound(parseInt(selectedId));
-            await loadAlarmSoundsToSelect();
-            localStorage.setItem('pomodoroAlarmSoundId', alarmSoundSelect.value); // Update localStorage after deletion
-            // If the deleted sound was currently selected, revert to default
-            if (alarmSoundSelect.value === selectedId) {
-                alarmSoundSelect.value = 'default';
-                alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
-                deleteAlarmSoundButton.classList.add('hidden');
+            try {
+                await deleteAlarmSound(parseInt(selectedId));
+                await loadAlarmSoundsToSelect();
+                // If the deleted sound was currently selected, revert to default
+                if (localStorage.getItem('pomodoroAlarmSoundId') == selectedId) { // Use == for comparison
+                    localStorage.setItem('pomodoroAlarmSoundId', 'default');
+                }
+                alarmSoundSelect.value = localStorage.getItem('pomodoroAlarmSoundId') || 'default';
+                // Re-evaluate the src and delete button visibility based on the new selection
+                if (alarmSoundSelect.value === 'default') {
+                    alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+                    deleteAlarmSoundButton.classList.add('hidden');
+                } else {
+                    const sounds = await getAlarmSounds();
+                    const selectedSound = sounds.find(s => s.id == alarmSoundSelect.value);
+                    if (selectedSound) {
+                        alarmSound.src = selectedSound.data;
+                        deleteAlarmSoundButton.classList.remove('hidden');
+                    } else {
+                        // Fallback if the new selected ID is also somehow invalid
+                        alarmSoundSelect.value = 'default';
+                        alarmSound.src = 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3';
+                        localStorage.setItem('pomodoroAlarmSoundId', 'default');
+                        deleteAlarmSoundButton.classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to delete alarm sound:", error);
+                showCustomAlertDialog('アラーム音の削除に失敗しました。', () => {}, () => {});
             }
         }, () => {});
     }
 });
 
-stopAlarmButton.addEventListener('click', stopAlarmSound); // NEW: Stop alarm button handler
+stopAlarmButton.addEventListener('click', stopAlarmSound);
 
 // --- Chart.js for Records ---
 function renderRecordsChart(timeUnit) {
@@ -1348,13 +1401,13 @@ function renderRecordsChart(timeUnit) {
                     label: '集中時間 (分)',
                     data: focusedData,
                     backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim(),
-                    borderRadius: 4
+                    borderRadius: 6 // More rounded bars
                 },
                 {
                     label: '休憩時間 (分)',
                     data: breakData,
                     backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--secondary-period-color').trim(),
-                    borderRadius: 4
+                    borderRadius: 6 // More rounded bars
                 }
             ]
         },
@@ -1376,6 +1429,15 @@ function renderRecordsChart(timeUnit) {
                             }
                             return label;
                         }
+                    },
+                    bodyFont: {
+                        family: 'Inter, sans-serif',
+                        size: 14
+                    },
+                    titleFont: {
+                        family: 'Inter, sans-serif',
+                        size: 16,
+                        weight: 'bold'
                     }
                 },
                 legend: {
@@ -1383,8 +1445,9 @@ function renderRecordsChart(timeUnit) {
                     position: 'top',
                     labels: {
                         font: {
-                            size: 14,
-                            family: 'Inter, sans-serif'
+                            size: 15,
+                            family: 'Inter, sans-serif',
+                            weight: '500'
                         },
                         color: 'var(--on-surface)'
                     }
@@ -1393,9 +1456,9 @@ function renderRecordsChart(timeUnit) {
                     display: true,
                     text: getChartTitle(timeUnit),
                     font: {
-                        size: 18,
+                        size: 20,
                         family: 'Inter, sans-serif',
-                        weight: '600'
+                        weight: '700'
                     },
                     color: 'var(--on-surface)'
                 }
@@ -1408,7 +1471,8 @@ function renderRecordsChart(timeUnit) {
                     },
                     ticks: {
                         font: {
-                            family: 'Inter, sans-serif'
+                            family: 'Inter, sans-serif',
+                            size: 13
                         },
                         color: 'var(--on-surface)'
                     },
@@ -1417,7 +1481,8 @@ function renderRecordsChart(timeUnit) {
                         text: getXAxisTitle(timeUnit),
                         font: {
                             family: 'Inter, sans-serif',
-                            weight: '500'
+                            weight: '600',
+                            size: 14
                         },
                         color: 'var(--on-surface)'
                     }
@@ -1430,7 +1495,8 @@ function renderRecordsChart(timeUnit) {
                             return value + '分';
                         },
                         font: {
-                            family: 'Inter, sans-serif'
+                            family: 'Inter, sans-serif',
+                            size: 13
                         },
                         color: 'var(--on-surface)'
                     },
@@ -1442,7 +1508,8 @@ function renderRecordsChart(timeUnit) {
                         text: '時間 (分)',
                         font: {
                             family: 'Inter, sans-serif',
-                            weight: '500'
+                            weight: '600',
+                            size: 14
                         },
                         color: 'var(--on-surface)'
                     }
@@ -1453,7 +1520,7 @@ function renderRecordsChart(timeUnit) {
 
     // Adjust chart canvas width for daily view if many days
     if (timeUnit === 'day' && labels.length > 7) {
-        recordsChartCanvas.style.minWidth = `${labels.length * 60}px`; // Approx 60px per bar
+        recordsChartCanvas.style.minWidth = `${labels.length * 65}px`; // Approx 65px per bar for better spacing
     } else {
         recordsChartCanvas.style.minWidth = 'unset';
     }
@@ -1503,7 +1570,7 @@ function processRecordsForChart(records, timeUnit) {
             if (timeUnit === 'day') {
                 key = currentDate.toISOString().split('T')[0];
                 label = `${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
-                foundEntry = sortedData.find(d => d.label === label && d.date.getFullYear() === currentDate.getFullYear());
+                foundEntry = sortedData.find(d => d.label === label && d.date.getFullYear() === currentDate.getFullYear() && new Date(d.date).getMonth() === currentDate.getMonth());
                 currentDate.setDate(currentDate.getDate() + 1);
             } else if (timeUnit === 'month') {
                 key = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
@@ -1520,7 +1587,7 @@ function processRecordsForChart(records, timeUnit) {
             if (foundEntry) {
                 filledData.push(foundEntry);
             } else {
-                filledData.push({ focused: 0, break: 0, label: label, date: new Date(key) });
+                filledData.push({ focused: 0, break: 0, label: label, date: new Date(currentDate) }); // Use a copy of currentDate
             }
         }
     }
