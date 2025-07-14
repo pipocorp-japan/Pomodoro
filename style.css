@@ -11,8 +11,9 @@ body {
     justify-content: center;
     min-height: 100vh;
     background-color: #2c3e50; /* デフォルトの背景色 */
-    color: #ecf0f1;
+    color: #ecf0f1; /* 基本のテキスト色 */
     overflow: hidden; /* スクロールバーを非表示に */
+    transition: background-color 0.5s ease; /* 背景色の変化を滑らかに */
 }
 
 /* iframeのスタイル */
@@ -28,24 +29,26 @@ dialog {
     border: none;
     border-radius: 15px;
     padding: 30px;
-    background-color: #34495e;
+    background-color: #34495e; /* ダイアログの背景色 */
     color: #ecf0f1;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); /* より強い影 */
     max-width: 90vw;
-    width: 400px;
+    width: 450px; /* 少し広めに */
     box-sizing: border-box;
+    animation: fadeIn 0.3s ease-out; /* フェードインアニメーション */
 }
 
 dialog::backdrop {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.75); /* 背景をより暗く */
 }
 
 dialog h2 {
     margin-top: 0;
-    font-size: 1.8em;
+    font-size: 2em; /* タイトルを大きく */
     color: #ecf0f1;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
 dialog span {
@@ -53,39 +56,76 @@ dialog span {
     margin-bottom: 20px;
     text-align: center;
     font-size: 1.1em;
+    line-height: 1.5;
+}
+
+dialog p { /* alertMessage 用のPタグ */
+    text-align: center;
+    font-size: 1.1em;
+    line-height: 1.5;
+    margin-bottom: 20px;
 }
 
 /* ダイアログ内のフォーム要素 */
 .dialog-content {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 18px; /* 間隔を広めに */
 }
 
 .dialog-content label {
-    font-size: 1em;
+    font-size: 1.05em;
     margin-bottom: 5px;
     display: block;
+    font-weight: bold;
 }
 
 .dialog-content input[type="number"],
 .dialog-content input[type="color"],
 .dialog-content input[type="file"] {
     width: 100%;
-    padding: 10px;
+    padding: 12px; /* パディングを増やす */
     border: 1px solid #555;
     border-radius: 8px;
     background-color: #2c3e50;
     color: #ecf0f1;
     box-sizing: border-box;
-    font-size: 1em;
+    font-size: 1.05em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dialog-content input[type="number"]:focus,
+.dialog-content input[type="color"]:focus,
+.dialog-content input[type="file"]:focus {
+    border-color: #3498db; /* フォーカス時の色 */
+    box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+    outline: none;
 }
 
 .dialog-content input[type="color"] {
-    height: 40px; /* カラーピッカーの高さ調整 */
+    height: 45px; /* カラーピッカーの高さ調整 */
     padding: 0;
     border: none;
     cursor: pointer;
+    -webkit-appearance: none; /* デフォルトのスタイルをリセット */
+    appearance: none;
+    background-color: transparent; /* 背景を透明に */
+}
+
+.dialog-content input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.dialog-content input[type="color"]::-webkit-color-swatch {
+    border: 2px solid #555; /* 枠線を追加 */
+    border-radius: 8px; /* 角丸に */
+}
+
+.dialog-content audio {
+    width: 100%;
+    margin-top: 15px;
+    background-color: #2c3e50;
+    border-radius: 8px;
 }
 
 /* ダイアログボタンのコンテナ */
@@ -93,19 +133,20 @@ dialog span {
     display: flex;
     justify-content: space-around;
     margin-top: 30px;
-    gap: 15px;
+    gap: 20px; /* ボタン間の間隔を広めに */
 }
 
 /* ダイアログボタンのスタイル */
 dialog button {
-    padding: 12px 25px;
+    padding: 14px 28px; /* パディングを増やす */
     border: none;
-    border-radius: 8px;
+    border-radius: 10px; /* 角丸を大きく */
     cursor: pointer;
-    font-size: 1.1em;
+    font-size: 1.15em; /* フォントサイズを大きく */
     font-weight: bold;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
     flex: 1; /* ボタンが均等な幅になるように */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 dialog button#db1 {
@@ -115,7 +156,8 @@ dialog button#db1 {
 
 dialog button#db1:hover {
     background-color: #27ae60;
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 dialog button#db2 {
@@ -125,7 +167,8 @@ dialog button#db2 {
 
 dialog button#db2:hover {
     background-color: #c0392b;
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* home.html と timer.html の共通ボタンとレイアウト */
@@ -147,50 +190,107 @@ body > button {
     background-color: #3498db; /* 青色 */
     color: white;
     border: none;
+    border-radius: 12px; /* 角丸を大きく */
+    padding: 18px 35px; /* パディングを増やす */
+    margin: 12px; /* マージンを調整 */
+    font-size: 1.3em; /* フォントサイズを大きく */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* テキストとアイコンを中央揃え */
+    gap: 12px; /* アイコンとテキストの間隔 */
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.25); /* より強い影 */
+    min-width: 180px; /* ボタンの最小幅 */
+}
+
+body > button:hover {
+    background-color: #2980b9;
+    transform: translateY(-4px); /* ホバー時の浮き上がりを大きく */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+body > button svg {
+    fill: #ecf0f1; /* SVGアイコンの色 */
+    width: 30px; /* アイコンサイズを大きく */
+    height: 30px;
+}
+
+/* home.html クールクロックのキャンバス */
+#clockid {
+    margin: 40px 0; /* マージンを調整 */
+    background-color: transparent; /* クールクロックの背景も透過 */
+    border-radius: 50%;
+    box-shadow: 0 0 25px rgba(0,0,0,0.6); /* 影を強調 */
+    border: 5px solid rgba(255,255,255,0.1); /* 軽いボーダー */
+}
+
+/* timer.html のスタイル */
+#countdown {
+    font-size: 7em; /* カウントダウンをさらに大きく */
+    margin: 60px 0; /* マージンを調整 */
+    font-weight: bold;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.6); /* 影を強調 */
+    letter-spacing: 2px; /* 文字間隔 */
+}
+
+/* timer.html のボタン */
+#timer-buttons {
+    display: flex;
+    gap: 25px; /* ボタン間の間隔を広めに */
+}
+
+/* record.html のスタイル */
+#recordChartContainer {
+    width: 90%; /* グラフコンテナの幅 */
+    max-width: 700px; /* 最大幅を広めに */
+    background-color: rgba(0, 0, 0, 0.25); /* グラフの背景 */
+    padding: 25px; /* パディングを増やす */
+    border-radius: 20px; /* 角丸を大きく */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* 影を強調 */
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px; /* 最小高さを設定 */
+}
+
+#recordChart {
+    background-color: transparent; /* チャートの背景も透過 */
+    width: 100% !important; /* 親コンテナにフィット */
+    height: 100% !important; /* 親コンテナにフィット */
+}
+
+/* 戻るボタンの共通スタイル（record.html と timer.html） */
+.back-button {
+    background-color: #7f8c8d; /* グレー */
+    color: white;
+    border: none;
     border-radius: 10px;
-    padding: 15px 30px;
-    margin: 10px;
-    font-size: 1.2em;
+    padding: 12px 25px;
+    margin: 20px;
+    font-size: 1.1em;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    position: absolute; /* 絶対配置 */
+    top: 20px; /* 上からの位置 */
+    left: 20px; /* 左からの位置 */
 }
 
-body > button:hover {
-    background-color: #2980b9;
-    transform: translateY(-3px);
+.back-button:hover {
+    background-color: #6c7a7d;
+    transform: translateY(-2px);
     box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
 }
 
-body > button svg {
-    fill: #ecf0f1; /* SVGアイコンの色 */
-    width: 28px;
-    height: 28px;
-}
-
-/* home.html クールクロックのキャンバス */
-#clockid {
-    margin: 30px 0;
-    background-color: transparent; /* クールクロックの背景も透過 */
-    border-radius: 50%;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5); /* 影を追加 */
-}
-
-/* timer.html のスタイル */
-#countdown {
-    font-size: 6em;
-    margin: 50px 0;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* timer.html のボタン */
-#timer-buttons {
-    display: flex;
-    gap: 20px;
+.back-button svg {
+    fill: #ecf0f1;
+    width: 24px;
+    height: 24px;
 }
 
 /* レスポンシブデザイン */
@@ -201,17 +301,61 @@ body > button svg {
     }
 
     dialog h2 {
-        font-size: 1.5em;
+        font-size: 1.8em;
     }
 
     dialog button {
-        padding: 10px 20px;
-        font-size: 1em;
+        padding: 12px 20px;
+        font-size: 1.05em;
     }
 
     body > button {
+        padding: 15px 25px;
+        font-size: 1.1em;
+        min-width: 150px;
+    }
+
+    body > button svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    #countdown {
+        font-size: 5em;
+    }
+
+    .back-button {
+        padding: 10px 20px;
+        font-size: 1em;
+        top: 15px;
+        left: 15px;
+    }
+    .back-button svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    #recordChartContainer {
+        width: 95%;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    dialog .dialog-buttons {
+        flex-direction: column; /* ボタンを縦に並べる */
+        gap: 15px;
+    }
+    dialog button {
+        width: 100%; /* フル幅にする */
+    }
+
+    body > button {
+        flex-direction: column; /* アイコンとテキストを縦に並べる */
         padding: 12px 20px;
         font-size: 1em;
+        gap: 5px;
+        min-width: unset;
     }
 
     body > button svg {
@@ -222,16 +366,21 @@ body > button svg {
     #countdown {
         font-size: 4em;
     }
+
+    .back-button {
+        padding: 8px 15px;
+        font-size: 0.9em;
+        top: 10px;
+        left: 10px;
+    }
+    .back-button svg {
+        width: 18px;
+        height: 18px;
+    }
 }
 
-@media (max-width: 480px) {
-    dialog button {
-        flex-direction: column; /* ボタンを縦に並べる */
-    }
-    .dialog-buttons {
-        flex-direction: column;
-    }
-    #countdown {
-        font-size: 3em;
-    }
+/* アニメーション */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
 }
