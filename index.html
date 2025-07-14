@@ -1,24 +1,961 @@
 <!DOCTYPE html>
 <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ポモドーロタイマー</title>
-        <script src="script.js"></script>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <!-- ここを修正しました: iflame -> iframe, href -> src -->
-        <iframe src="home.html">
-            読み込み中...
-        </iframe>
-        <dialog id="diag">
-            <h2 id="dTitle"></h2>
-            <span id="dBody"></span>
-            <div class="dialog-buttons">
-                <button type="button" id="db1"></button>
-                <button type="button" id="db2"></button>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ポモドーロタイマー</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* CSS variables for theme settings */
+        :root {
+            --accent-color: #007AFF; /* Default accent color */
+            --bg-color: #f0f2f5;
+            --text-color: #1c1c1e;
+            --card-bg-color: #ffffff;
+            --button-bg-color: #e5e5e7;
+            --button-text-color: #1c1c1e;
+            --border-color: #d1d1d6;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212; /* Dark mode background color */
+            --text-color: #ffffff;
+            --card-bg-color: #1e1e1e;
+            --button-bg-color: #3a3a3c;
+            --button-text-color: #ffffff;
+            --border-color: #3a3a3c;
+        }
+
+        /* Basic styles */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            overflow: hidden; /* Hide scrollbar */
+            -webkit-font-smoothing: antialiased; /* Smooth fonts */
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Screen container */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            gap: 20px; /* Spacing between elements */
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        /* Generic header */
+        .header {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px; /* Material Design standard header height */
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .icon-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        body.dark-mode .icon-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .icon-btn .material-symbols-outlined {
+            font-size: 28px;
+            vertical-align: middle;
+        }
+
+        /* Main screen */
+        #main-screen .header {
+            justify-content: flex-end; /* Align settings button to the right */
+        }
+
+        #clock-display {
+            text-align: center;
+        }
+
+        #digital-clock {
+            font-size: clamp(3.5rem, 20vw, 5rem); /* Adjust based on screen size */
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: 2px;
+        }
+        
+        #analog-clock {
+            display: none; /* Toggled by JS */
+            width: 200px;
+            height: 200px;
+            border: 4px solid var(--accent-color);
+            border-radius: 50%;
+            position: relative;
+        }
+        #analog-clock .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom;
+            background-color: var(--text-color);
+            border-radius: 2px;
+        }
+        #hour-hand { width: 4px; height: 50px; }
+        #minute-hand { width: 3px; height: 70px; }
+        #second-hand { width: 2px; height: 80px; background-color: var(--accent-color); }
+        
+        .main-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 320px;
+        }
+        
+        .main-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: 1px solid var(--border-color);
+            border-radius: 28px; /* Stronger rounded corners for modern look */
+            background-color: var(--card-bg-color);
+            color: var(--text-color);
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .main-btn:active {
+            background-color: var(--button-bg-color);
+        }
+        .main-btn .material-symbols-outlined {
+            margin-right: 15px;
+            color: var(--accent-color);
+            font-size: 24px;
+        }
+
+        /* Settings modal */
+        #settings-modal, #confirm-dialog {
+            display: none; /* Toggled by JS */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg-color);
+            padding: 24px;
+            border-radius: 28px; /* Android 12+ style rounded corners */
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { margin: 0; font-size: 1.4rem; }
+        
+        .setting-item {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .setting-item label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+        .setting-item input[type="number"],
+        .setting-item input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+        .setting-item input[type="color"] {
+            width: 100%;
+            height: 48px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0;
+            cursor: pointer;
+        }
+        .radio-group, .checkbox-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        /* Timer screen */
+        #timer-display {
+            font-size: clamp(5rem, 25vw, 7rem);
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .progress-bar {
+            width: 80%;
+            max-width: 300px;
+            height: 10px;
+            background-color: var(--button-bg-color);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #progress-bar-inner {
+            width: 100%;
+            height: 100%;
+            background-color: var(--accent-color);
+            transition: width 0.5s linear;
+        }
+        
+        /* FAB (Floating Action Button) style */
+        #play-pause-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 24px; /* Squircle shape */
+            border: none;
+            background-color: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #play-pause-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #play-pause-btn .material-symbols-outlined {
+            font-size: 44px;
+            vertical-align: middle;
+        }
+
+        /* Records screen */
+        #chart-container {
+            width: 100%;
+            max-width: 600px;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+        .time-range-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .time-range-selector button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background-color: transparent;
+            color: var(--text-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .time-range-selector button.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        /* Confirmation dialog */
+        #confirm-dialog .dialog-body {
+            margin-bottom: 24px;
+        }
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .dialog-actions button {
+            background: none;
+            border: none;
+            padding: 10px 12px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #confirm-ok {
+            color: var(--accent-color);
+        }
+        #confirm-cancel {
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+        #confirm-ok:hover, #confirm-cancel:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        body.dark-mode #confirm-ok:hover, body.dark-mode #confirm-cancel:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <main id="main-screen" class="screen active">
+            <header class="header">
+                <button id="open-settings-btn" class="icon-btn" aria-label="設定">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </header>
+            
+            <div id="clock-display">
+                <div id="digital-clock">00:00:00</div>
+                <div id="analog-clock">
+                    <div id="hour-hand" class="hand"></div>
+                    <div id="minute-hand" class="hand"></div>
+                    <div id="second-hand" class="hand"></div>
+                </div>
             </div>
-        </dialog>
-    </body>
+
+            <div class="main-buttons">
+                <button id="start-focus-btn" class="main-btn">
+                    <span class="material-symbols-outlined">self_improvement</span>
+                    集中する
+                </button>
+                <button id="view-records-btn" class="main-btn">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    記録を見る
+                </button>
+            </div>
+        </main>
+
+        <section id="timer-screen" class="screen">
+            <header class="header" style="justify-content: flex-start;">
+                <button id="timer-back-btn" class="icon-btn" aria-label="戻る">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+            </header>
+
+            <div id="timer-display">25:00</div>
+            <div class="progress-bar">
+                <div id="progress-bar-inner"></div>
+            </div>
+            <button id="play-pause-btn" aria-label="再生">
+                <span id="play-pause-icon" class="material-symbols-outlined">play_arrow</span>
+            </button>
+        </section>
+
+        <section id="records-screen" class="screen">
+            <header class="header" style="justify-content: flex-start;">
+                   <button class="icon-btn back-to-main-btn" aria-label="戻る">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+            </header>
+            
+            <div class="time-range-selector">
+                <button class="active" data-range="day">日</button>
+                <button data-range="week">週</button>
+                <button data-range="month">月</button>
+                <button data-range="year">年</button>
+            </div>
+            <div id="chart-container">
+                <canvas id="records-chart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <div id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>設定</h2>
+                <button class="icon-btn" id="close-settings-btn" aria-label="閉じる">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="settings-form">
+                <div class="setting-item">
+                    <label for="setting-work-time">作業時間 (分)</label>
+                    <input type="number" id="setting-work-time" min="1">
+                </div>
+                <div class="setting-item">
+                    <label for="setting-break-time">休憩時間 (分)</label>
+                    <input type="number" id="setting-break-time" min="1">
+                </div>
+                <div class="setting-item">
+                    <label for="setting-accent-color">アクセントカラー</label>
+                    <input type="color" id="setting-accent-color">
+                </div>
+                <div class="setting-item">
+                    <div class="checkbox-group">
+                        <label for="setting-dark-mode">ダークモード</label>
+                        <input type="checkbox" id="setting-dark-mode">
+                    </div>
+                </div>
+                   <div class="setting-item">
+                    <label>時計の表示</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="clock-type" value="digital"> デジタル</label>
+                        <label><input type="radio" name="clock-type" value="analog"> アナログ</label>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label for="setting-alarm-file">アラーム音</label>
+                    <input type="file" id="setting-alarm-file" accept="audio/*">
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="confirm-dialog">
+        <div class="modal-content">
+            <h3>お疲れ様です！</h3>
+            <p class="dialog-body">タイマーを終了して記録を保存しますか？</p>
+            <div class="dialog-actions">
+                <button id="confirm-cancel">キャンセル</button>
+                <button id="confirm-ok">保存して終了</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM element retrieval ---
+            const mainScreen = document.getElementById('main-screen');
+            const timerScreen = document.getElementById('timer-screen');
+            const recordsScreen = document.getElementById('records-screen');
+            const settingsModal = document.getElementById('settings-modal');
+            const confirmDialog = document.getElementById('confirm-dialog');
+            
+            const digitalClock = document.getElementById('digital-clock');
+            const analogClock = document.getElementById('analog-clock');
+            const hourHand = document.getElementById('hour-hand');
+            const minuteHand = document.getElementById('minute-hand');
+            const secondHand = document.getElementById('second-hand');
+            
+            const timerDisplay = document.getElementById('timer-display');
+            const progressBarInner = document.getElementById('progress-bar-inner');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playPauseIcon = document.getElementById('play-pause-icon');
+            
+            const recordsChartCanvas = document.getElementById('records-chart');
+            const timeRangeButtons = document.querySelectorAll('.time-range-selector button');
+
+            // --- Settings (JS object) ---
+            let settings = {
+                workTime: 25,
+                breakTime: 5,
+                accentColor: '#007AFF',
+                isDarkMode: false,
+                clockType: 'digital',
+                alarmSound: new Audio('https://pipocorp-japan.github.io/pomodoro/alarm.mp3') // Updated alarm sound URL
+            };
+
+            // --- Timer state variables ---
+            let timerWorker = null; // Web Worker
+            let timerState = 'stopped'; // 'running', 'paused', 'stopped'
+            let totalTime = 0; // Total time of the timer (seconds)
+            let currentRemainingTime = 0; // Current remaining time (seconds)
+            let hasTimerStartedOnce = false; // Has the timer started at least once?
+            let chartInstance = null; // Chart.js instance
+            let records = []; // Array to store focus time records
+
+            // --- Initialization process ---
+            function init() {
+                loadSettings();
+                applySettings();
+                loadRecords(); // Load records
+                setupEventListeners();
+                updateMainClock();
+                setInterval(updateMainClock, 1000);
+                createTimerWorker();
+            }
+            
+            // --- Create Web Worker ---
+            // Use Worker instead of setInterval for stable background operation
+            function createTimerWorker() {
+                const workerCode = `
+                    let timerId = null;
+                    let remainingTime = 0;
+                    let lastTick = 0;
+                    
+                    self.onmessage = function(e) {
+                        const { command, time } = e.data;
+                        if (command === 'start') {
+                            remainingTime = time;
+                            lastTick = Date.now();
+                            if (timerId) clearInterval(timerId);
+                            timerId = setInterval(() => {
+                                const now = Date.now();
+                                const elapsed = now - lastTick;
+                                lastTick = now;
+                                remainingTime -= elapsed / 1000;
+                                if (remainingTime <= 0) {
+                                    remainingTime = 0;
+                                    clearInterval(timerId);
+                                    timerId = null;
+                                    self.postMessage({ type: 'done' });
+                                }
+                                self.postMessage({ type: 'tick', remainingTime });
+                            }, 100); // Update every 100ms
+                        } else if (command === 'pause') {
+                            clearInterval(timerId);
+                            timerId = null;
+                        } else if (command === 'stop') {
+                             clearInterval(timerId);
+                             timerId = null;
+                             remainingTime = 0;
+                        }
+                    };
+                `;
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                timerWorker = new Worker(URL.createObjectURL(blob));
+
+                timerWorker.onmessage = (e) => {
+                    const { type, remainingTime } = e.data;
+                    currentRemainingTime = remainingTime; // Update current remaining time
+                    if (type === 'tick') {
+                        updateTimerUI(remainingTime);
+                    } else if (type === 'done') {
+                        timerState = 'stopped';
+                        playPauseIcon.textContent = 'replay';
+                        settings.alarmSound.play();
+                        saveRecord(settings.workTime); // Save record upon completion
+                        // Show confirmation dialog when timer finishes
+                        document.getElementById('confirm-dialog').querySelector('h3').textContent = '集中時間終了！';
+                        document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = 'お疲れ様でした！記録を保存しますか？';
+                        confirmDialog.style.display = 'flex';
+                    }
+                };
+            }
+
+            // --- Event listener setup ---
+            function setupEventListeners() {
+                // Screen transitions
+                document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
+                document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
+                
+                document.getElementById('start-focus-btn').addEventListener('click', () => {
+                    resetTimer(settings.workTime * 60);
+                    switchScreen('timer-screen');
+                });
+                
+                document.getElementById('view-records-btn').addEventListener('click', () => {
+                    switchScreen('records-screen');
+                    renderChart();
+                });
+
+                document.querySelectorAll('.back-to-main-btn').forEach(btn => {
+                    btn.addEventListener('click', () => switchScreen('main-screen'));
+                });
+
+                // Timer screen back button
+                document.getElementById('timer-back-btn').addEventListener('click', () => {
+                    if (hasTimerStartedOnce && timerState !== 'stopped') {
+                        // If timer has started and not yet finished
+                        document.getElementById('confirm-dialog').querySelector('h3').textContent = 'タイマーを終了しますか？';
+                        document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = '現在のセッションを破棄してメイン画面に戻りますか？';
+                        confirmDialog.style.display = 'flex';
+                        // In this case, "Save and Exit" behavior changes to "Discard and Return"
+                        // For now, default to "Discard" and "Save and Exit" only when timer completes
+                        document.getElementById('confirm-ok').textContent = '破棄して戻る';
+                        document.getElementById('confirm-ok').onclick = () => {
+                            stopTimer(); // Stop timer, do not save record
+                            confirmDialog.style.display = 'none';
+                            switchScreen('main-screen');
+                            // Restore button text and event listener
+                            document.getElementById('confirm-ok').textContent = '保存して終了';
+                            document.getElementById('confirm-ok').onclick = () => {
+                                stopTimer();
+                                saveRecord(settings.workTime - Math.ceil(currentRemainingTime / 60)); // Save elapsed time
+                                confirmDialog.style.display = 'none';
+                                switchScreen('main-screen');
+                            };
+                        };
+                    } else {
+                        switchScreen('main-screen');
+                    }
+                });
+
+                // Confirmation dialog
+                document.getElementById('confirm-cancel').addEventListener('click', () => confirmDialog.style.display = 'none');
+                // Initial "Save and Exit" button event listener
+                document.getElementById('confirm-ok').addEventListener('click', () => {
+                    stopTimer(); // Stop timer
+                    saveRecord(settings.workTime); // Save focus time
+                    console.log('記録を保存しました');
+                    confirmDialog.style.display = 'none';
+                    switchScreen('main-screen');
+                });
+
+
+                // Timer operations
+                playPauseBtn.addEventListener('click', toggleTimer);
+
+                // Settings changes
+                document.getElementById('setting-work-time').addEventListener('change', e => { settings.workTime = parseInt(e.target.value); saveSettings(); });
+                document.getElementById('setting-break-time').addEventListener('change', e => { settings.breakTime = parseInt(e.target.value); saveSettings(); });
+                document.getElementById('setting-accent-color').addEventListener('input', e => { settings.accentColor = e.target.value; applyAccentColor(); });
+                document.getElementById('setting-accent-color').addEventListener('change', saveSettings);
+                document.getElementById('setting-dark-mode').addEventListener('change', e => { settings.isDarkMode = e.target.checked; applyDarkMode(); saveSettings(); });
+                document.querySelectorAll('input[name="clock-type"]').forEach(radio => {
+                    radio.addEventListener('change', e => { settings.clockType = e.target.value; applyClockType(); saveSettings(); });
+                });
+                document.getElementById('setting-alarm-file').addEventListener('change', e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const url = URL.createObjectURL(file);
+                        settings.alarmSound = new Audio(url);
+                        // File URL cannot be saved to localStorage, so only record that a file was selected
+                        // This will reset on page reload, which is a web app limitation
+                        saveSettings(); 
+                    }
+                });
+
+                // Records screen time range buttons
+                timeRangeButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        timeRangeButtons.forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+                        renderChart();
+                    });
+                });
+            }
+
+            // --- Apply and save settings ---
+            function applySettings() {
+                applyAccentColor();
+                applyDarkMode();
+                applyClockType();
+                // Reflect values in settings UI
+                document.getElementById('setting-work-time').value = settings.workTime;
+                document.getElementById('setting-break-time').value = settings.breakTime;
+                document.getElementById('setting-accent-color').value = settings.accentColor;
+                document.getElementById('setting-dark-mode').checked = settings.isDarkMode;
+                document.querySelector(`input[name="clock-type"][value="${settings.clockType}"]`).checked = true;
+            }
+
+            function applyAccentColor() {
+                document.documentElement.style.setProperty('--accent-color', settings.accentColor);
+            }
+
+            function applyDarkMode() {
+                document.body.classList.toggle('dark-mode', settings.isDarkMode);
+            }
+
+            function applyClockType() {
+                digitalClock.style.display = settings.clockType === 'digital' ? 'block' : 'none';
+                analogClock.style.display = settings.clockType === 'analog' ? 'block' : 'none';
+            }
+            
+            function saveSettings() {
+                // alarmSound is an Audio object and cannot be saved. If URL is to be saved, separate handling is needed.
+                // For now, an Audio object is temporarily created on file selection, but not persisted.
+                const { alarmSound, ...savableSettings } = settings;
+                localStorage.setItem('pomodoroSettings', JSON.stringify(savableSettings));
+            }
+
+            function loadSettings() {
+                const saved = localStorage.getItem('pomodoroSettings');
+                if (saved) {
+                    const loadedSettings = JSON.parse(saved);
+                    // alarmSound will revert to default on load or be overwritten by file selection
+                    settings = { ...settings, ...loadedSettings };
+                }
+            }
+            
+            // --- Screen switching ---
+            function switchScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId).classList.add('active');
+            }
+            
+            // --- Update main clock ---
+            function updateMainClock() {
+                const now = new Date();
+                const h = now.getHours();
+                const m = now.getMinutes();
+                const s = now.getSeconds();
+
+                // Digital
+                digitalClock.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                
+                // Analog
+                const hDeg = (h % 12) * 30 + m * 0.5;
+                const mDeg = m * 6 + s * 0.1;
+                const sDeg = s * 6;
+                hourHand.style.transform = `translateX(-50%) rotate(${hDeg}deg)`;
+                minuteHand.style.transform = `translateX(-50%) rotate(${mDeg}deg)`;
+                secondHand.style.transform = `translateX(-50%) rotate(${sDeg}deg)`;
+            }
+
+            // --- Timer logic ---
+            function toggleTimer() {
+                if (timerState === 'running') {
+                    pauseTimer();
+                } else {
+                    startTimer();
+                }
+            }
+
+            function startTimer() {
+                hasTimerStartedOnce = true;
+                timerState = 'running';
+                playPauseIcon.textContent = 'pause';
+                timerWorker.postMessage({ command: 'start', time: currentRemainingTime > 0 ? currentRemainingTime : totalTime });
+            }
+
+            function pauseTimer() {
+                timerState = 'paused';
+                playPauseIcon.textContent = 'play_arrow';
+                timerWorker.postMessage({ command: 'pause' });
+            }
+
+            function stopTimer() {
+                timerState = 'stopped';
+                playPauseIcon.textContent = 'replay';
+                timerWorker.postMessage({ command: 'stop' });
+                resetTimer(settings.workTime * 60); // Reset timer to initial state
+                hasTimerStartedOnce = false; // Reset timer started state
+            }
+
+            function resetTimer(timeInSeconds) {
+                totalTime = timeInSeconds;
+                currentRemainingTime = timeInSeconds;
+                updateTimerUI(timeInSeconds);
+                progressBarInner.style.width = '100%';
+                timerState = 'stopped';
+                playPauseIcon.textContent = 'play_arrow';
+                hasTimerStartedOnce = false;
+            }
+
+            function updateTimerUI(remainingTime) {
+                const minutes = Math.floor(remainingTime / 60);
+                const seconds = Math.floor(remainingTime % 60);
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                const progressPercentage = (remainingTime / totalTime) * 100;
+                progressBarInner.style.width = `${progressPercentage}%`;
+            }
+
+            // --- Save and load records ---
+            function saveRecord(durationMinutes) {
+                const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+                records.push({ date: today, duration: durationMinutes });
+                localStorage.setItem('pomodoroRecords', JSON.stringify(records));
+                renderChart(); // Redraw chart when records are updated
+            }
+
+            function loadRecords() {
+                const savedRecords = localStorage.getItem('pomodoroRecords');
+                if (savedRecords) {
+                    records = JSON.parse(savedRecords);
+                }
+            }
+
+            // --- Render records chart ---
+            function renderChart() {
+                if (chartInstance) {
+                    chartInstance.destroy(); // Destroy existing chart if any
+                }
+
+                const activeRange = document.querySelector('.time-range-selector button.active').dataset.range;
+                let filteredRecords = [];
+                let labels = [];
+                let data = [];
+
+                const now = new Date();
+
+                // Get computed text color for chart ticks
+                const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+
+                // Aggregate data based on selected period
+                switch (activeRange) {
+                    case 'day':
+                        // Only today's records
+                        const todayStr = now.toISOString().slice(0, 10);
+                        filteredRecords = records.filter(record => record.date === todayStr);
+                        labels = ['今日'];
+                        data = [filteredRecords.reduce((sum, record) => sum + record.duration, 0)];
+                        break;
+                    case 'week':
+                        // Records for the past 7 days
+                        const weekData = {};
+                        for (let i = 6; i >= 0; i--) {
+                            const d = new Date(now);
+                            d.setDate(now.getDate() - i);
+                            const dateStr = d.toISOString().slice(0, 10);
+                            labels.push(d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }));
+                            weekData[dateStr] = 0;
+                        }
+                        records.forEach(record => {
+                            if (weekData.hasOwnProperty(record.date)) {
+                                weekData[record.date] += record.duration;
+                            }
+                        });
+                        data = labels.map(label => {
+                            const dateParts = label.split('/');
+                            const month = parseInt(dateParts[0]);
+                            const day = parseInt(dateParts[1]);
+                            // Use current year
+                            const fullDateStr = `${now.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            return weekData[fullDateStr] || 0;
+                        });
+                        break;
+                    case 'month':
+                        // Records for the current month (daily)
+                        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                        const monthData = {};
+                        for (let i = 1; i <= daysInMonth; i++) {
+                            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                            labels.push(String(i));
+                            monthData[dateStr] = 0;
+                        }
+                        records.forEach(record => {
+                            if (record.date.startsWith(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)) {
+                                monthData[record.date] += record.duration;
+                            }
+                        });
+                        data = labels.map(day => {
+                            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            return monthData[dateStr] || 0;
+                        });
+                        break;
+                    case 'year':
+                        // Records for the current year (monthly)
+                        const yearData = {};
+                        for (let i = 0; i < 12; i++) {
+                            labels.push(`${i + 1}月`);
+                            const monthStr = `${now.getFullYear()}-${String(i + 1).padStart(2, '0')}`;
+                            yearData[monthStr] = 0;
+                        }
+                        records.forEach(record => {
+                            const monthKey = record.date.slice(0, 7); // YYYY-MM
+                            if (record.date.startsWith(String(now.getFullYear()))) {
+                                yearData[monthKey] += record.duration;
+                            }
+                        });
+                        data = labels.map((_, index) => {
+                            const monthKey = `${now.getFullYear()}-${String(index + 1).padStart(2, '0')}`;
+                            return yearData[monthKey] || 0;
+                        });
+                        break;
+                }
+
+                const ctx = recordsChartCanvas.getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '集中時間 (分)',
+                            data: data,
+                            backgroundColor: settings.accentColor,
+                            borderRadius: 5,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false,
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.raw + '分';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: textColor // Use the value obtained from JS, not CSS variable directly
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(128, 128, 128, 0.2)' // Grid line color
+                                },
+                                ticks: {
+                                    color: textColor // Use the value obtained from JS, not CSS variable directly
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize the application
+            init();
+        });
+    </script>
+</body>
 </html>
