@@ -6,7 +6,7 @@ body {
     padding: 0;
     font-family: 'Inter', sans-serif; /* Interフォントを使用 */
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* iframeとdialogを縦に並べる */
     align-items: center;
     justify-content: center;
     min-height: 100vh;
@@ -22,6 +22,7 @@ iframe {
     height: 100vh; /* ビューポートの高さいっぱいに */
     border: none;
     background-color: transparent; /* 親の背景色を透過させるため */
+    display: block; /* iframeが確実にブロック要素として振る舞うように */
 }
 
 /* ダイアログの基本スタイル */
@@ -172,13 +173,14 @@ dialog button#db2:hover {
 }
 
 /* home.html と timer.html の共通ボタンとレイアウト */
+/* iframe内のhtml, bodyに適用されるスタイル */
 html, body {
     height: 100%;
     width: 100%;
     margin: 0;
     padding: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* 要素を縦に並べる */
     align-items: center;
     justify-content: center;
     background-color: transparent; /* 親の背景色を透過 */
@@ -186,7 +188,7 @@ html, body {
 }
 
 /* home.html のボタンとクールクロックの配置 */
-body > button {
+body > button { /* iframe内のbody直下のボタンに適用 */
     background-color: #3498db; /* 青色 */
     color: white;
     border: none;
@@ -234,7 +236,7 @@ body > button svg {
     letter-spacing: 2px; /* 文字間隔 */
 }
 
-/* timer.html のボタン */
+/* timer.html のボタンコンテナ */
 #timer-buttons {
     display: flex;
     gap: 25px; /* ボタン間の間隔を広めに */
