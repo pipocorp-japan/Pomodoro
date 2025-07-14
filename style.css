@@ -10,7 +10,7 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background-color: #2c3e50; /* デフォルトの背景色 */
+    background-color: #2c3e50; /* デフォルトの背景色 (ダークブルーグレー) */
     color: #ecf0f1; /* 基本のテキスト色 */
     overflow: hidden; /* スクロールバーを非表示に */
     transition: background-color 0.5s ease; /* 背景色の変化を滑らかに */
@@ -98,8 +98,8 @@ dialog p { /* alertMessage 用のPタグ */
 .dialog-content input[type="number"]:focus,
 .dialog-content input[type="color"]:focus,
 .dialog-content input[type="file"]:focus {
-    border-color: #3498db; /* フォーカス時の色 */
-    box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+    border-color: #f39c12; /* フォーカス時の色をアクセントカラーに */
+    box-shadow: 0 0 8px rgba(243, 156, 18, 0.5);
     outline: none;
 }
 
@@ -151,7 +151,7 @@ dialog button {
 }
 
 dialog button#db1 {
-    background-color: #2ecc71; /* 緑色 */
+    background-color: #2ecc71; /* 緑色 (保存/OK) */
     color: white;
 }
 
@@ -162,7 +162,7 @@ dialog button#db1:hover {
 }
 
 dialog button#db2 {
-    background-color: #e74c3c; /* 赤色 */
+    background-color: #e74c3c; /* 赤色 (キャンセル) */
     color: white;
 }
 
@@ -187,9 +187,9 @@ html, body {
     color: #ecf0f1;
 }
 
-/* home.html のボタンとクールクロックの配置 */
+/* home.html のメインボタン (設定、スタート、記録を見る) */
 body > button { /* iframe内のbody直下のボタンに適用 */
-    background-color: #3498db; /* 青色 */
+    background-color: #f39c12; /* アクセントカラー (鮮やかなオレンジ) */
     color: white;
     border: none;
     border-radius: 12px; /* 角丸を大きく */
@@ -207,7 +207,7 @@ body > button { /* iframe内のbody直下のボタンに適用 */
 }
 
 body > button:hover {
-    background-color: #2980b9;
+    background-color: #e67e22; /* ホバー時の色 */
     transform: translateY(-4px); /* ホバー時の浮き上がりを大きく */
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
 }
