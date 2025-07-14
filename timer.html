@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body>
+        <button type="button" id="back">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"/></svg>
+        </button>
+        <h1 id="countdown">--:--</h1>
+        <button type="button" id="start">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-312v-336l240 168-240 168Zm320-8v-320h80v320h-80Zm160 0v-320h80v320h-80Z"/></svg>
+        </button>
+        <script>
+            // timer.htmlのJavaScript (scriptタグ内に直接記述)
+
+let countdownElement; // カウントダウン表示要素
+let startPauseBtn;    // スタート/一時停止ボタン
+
+// DOMContentLoaded イベントで初期化処理を実行
+document.addEventListener('DOMContentLoaded', () => {
+    const backBtn = document.getElementById('back');
+    startPauseBtn = document.getElementById('start'); // グローバル変数に代入
+    countdownElement = document.getElementById('countdown'); // グローバル変数に代入
+
+    // 戻るボタンのイベントリスナー
+    backBtn.addEventListener('click', () => {
+        // 親ウィンドウにhome.htmlに戻るようメッセージを送信
+        window.parent.postMessage({ type: 'backToHome' }, '*');
+    });
+
+    // スタート/一時停止ボタンのイベントリスナー
+    startPauseBtn.addEventListener('click', () => {
+        // 親ウィンドウにタイマーの開始/一時停止を切り替えるようメッセージを送信
+        window.parent.postMessage({ type: 'toggleTimer' }, '*');
+    });
+
+    // 親ウィンドウからタイマー状態のメッセージを受け取る
+    window.addEventListener('message', (event) => {
+        const message = event.data;
+
+        if (message.type === 'timerState') {
+            updateDisplay(message.timeLeft);
+            updateStartPauseButton(message.isTimerRunning);
+            // フェーズに応じて背景色を変更 (オプション)
+            // document.body.style.backgroundColor = message.currentPhase === 'work' ? '#e74c3c' : '#2ecc71';
+        } else if (message.type === 'applyTheme') {
+            // 親からテーマカラーが送られてきた場合、iframeのbodyにも適用
+            document.body.style.backgroundColor = message.color;
+        }
+    });
+
+    // timer.htmlがロードされたら、親に現在のタイマー状態を要求
+    window.parent.postMessage({ type: 'requestTimerState' }, '*');
+});
+
+/**
+ * カウントダウン表示を更新する
+ * @param {number} seconds - 残り時間（秒）
+ */
+function updateDisplay(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+/**
+ * スタート/一時停止ボタンのアイコンとテキストを更新する
+ * @param {boolean} isRunning - タイマーが実行中かどうか
+ */
+function updateStartPauseButton(isRunning) {
+    if (isRunning) {
+        // 一時停止アイコン
+        startPauseBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M320-320v-320h80v320h-80Zm240 0v-320h80v320h-80Z"/></svg>
+            一時停止
+        `;
+    } else {
+        // スタートアイコン
+        startPauseBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M200-312v-336l240 168-240 168Zm320-8v-320h80v320h-80Zm160 0v-320h80v320h-80Z"/></svg>
+            スタート
+        `;
+    }
+}
+
+        </script>
+    </body>
+</html>
