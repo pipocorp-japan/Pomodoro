@@ -2,55 +2,23 @@
 <html lang="ja">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>ポモドーロタイマー</title>
+        <script src="script.js"></script>
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <iflame href="home.html">
+        <!-- ここを修正しました: iflame -> iframe, href -> src -->
+        <iframe src="home.html">
             読み込み中...
-        </iflame>
+        </iframe>
         <dialog id="diag">
             <h2 id="dTitle"></h2>
             <span id="dBody"></span>
-            <button type="button" id="db1"></button>
-            <button type="button" id="db2"></button>
+            <div class="dialog-buttons">
+                <button type="button" id="db1"></button>
+                <button type="button" id="db2"></button>
+            </div>
         </dialog>
     </body>
-    <script>
-        function showDialog(title, body, b1Text, b1Callback, b2Text, b2Callback) {
-    const dialog = document.getElementById('diag');
-    const dTitle = document.getElementById('dTitle');
-    const dBody = document.getElementById('dBody');
-    const db1 = document.getElementById('db1');
-    const db2 = document.getElementById('db2');
-
-    // 引数で受け取った内容を要素にセット
-    dTitle.textContent = title;
-    dBody.textContent = body;
-    db1.textContent = b1Text;
-    db2.textContent = b2Text;
-
-    // 既存のイベントリスナーを削除（重複登録防止のため）
-    db1.onclick = null;
-    db2.onclick = null;
-
-    // ボタンにイベントリスナーを設定
-    db1.addEventListener('click', () => {
-        dialog.close(); // ダイアログを閉じる
-        if (typeof b1Callback === 'function') {
-            b1Callback(); // コールバック関数を実行
-        }
-    });
-
-    db2.addEventListener('click', () => {
-        dialog.close(); // ダイアログを閉じる
-        if (typeof b2Callback === 'function') {
-            b2Callback(); // コールバック関数を実行
-        }
-    });
-
-    // ダイアログを表示
-    dialog.showModal();
-}
-    </script>
 </html>
