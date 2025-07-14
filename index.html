@@ -509,7 +509,8 @@
                 accentColor: '#007AFF',
                 isDarkMode: false,
                 clockType: 'digital',
-                alarmSound: new Audio('https://pipocorp-japan.github.io/pomodoro/alarm.mp3') // Updated alarm sound URL
+                alarmSoundUrl: 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3', // Store URL string, changed to a working URL
+                alarmSound: null // Will be initialized later
             };
 
             // --- Timer state variables ---
@@ -580,9 +581,14 @@
                     } else if (type === 'done') {
                         timerState = 'stopped';
                         playPauseIcon.textContent = 'replay';
-                        settings.alarmSound.play();
-                        // 完了時に記録を保存する際、設定時間ではなく経過時間を保存
-                        saveRecord(settings.workTime - Math.floor(remainingTime / 60)); // 経過時間を保存
+                        try {
+                            settings.alarmSound.play(); // Play alarm sound
+                        } catch (error) {
+                            console.error("アラーム音の再生に失敗しました:", error);
+                            // Optionally, play a fallback sound or show a message
+                        }
+                        // Save record upon completion, using actual elapsed time
+                        saveRecord(settings.workTime - Math.floor(remainingTime / 60)); 
                         // Show confirmation dialog when timer finishes
                         document.getElementById('confirm-dialog').querySelector('h3').textContent = '集中時間終了！';
                         document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = 'お疲れ様でした！記録を保存しますか？';
@@ -619,7 +625,6 @@
                         document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = '現在のセッションを破棄してメイン画面に戻りますか？';
                         confirmDialog.style.display = 'flex';
                         // In this case, "Save and Exit" behavior changes to "Discard and Return"
-                        // For now, default to "Discard" and "Save and Exit" only when timer completes
                         document.getElementById('confirm-ok').textContent = '破棄して戻る';
                         document.getElementById('confirm-ok').onclick = () => {
                             stopTimer(); // Stop timer, do not save record
@@ -629,7 +634,7 @@
                             document.getElementById('confirm-ok').textContent = '保存して終了';
                             document.getElementById('confirm-ok').onclick = () => {
                                 stopTimer();
-                                saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); // 経過時間を保存
+                                saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); // Save elapsed time
                                 confirmDialog.style.display = 'none';
                                 switchScreen('main-screen');
                             };
@@ -644,8 +649,8 @@
                 // Initial "Save and Exit" button event listener
                 document.getElementById('confirm-ok').addEventListener('click', () => {
                     stopTimer(); // Stop timer
-                    // ここも、常に設定値ではなく、経過時間を保存するように修正
-                    saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); // 経過時間を保存
+                    // Save elapsed time
+                    saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); 
                     console.log('記録を保存しました');
                     confirmDialog.style.display = 'none';
                     switchScreen('main-screen');
@@ -668,10 +673,10 @@
                     const file = e.target.files[0];
                     if (file) {
                         const url = URL.createObjectURL(file);
-                        settings.alarmSound = new Audio(url);
-                        // File URL cannot be saved to localStorage, so only record that a file was selected
-                        // This will reset on page reload, which is a web app limitation
+                        settings.alarmSound = new Audio(url); // Create Audio object from temporary URL
+                        settings.alarmSoundUrl = url; // Store the temporary URL (will not persist across sessions)
                         saveSettings(); 
+                        console.warn("カスタムアラーム音はブラウザセッション中のみ有効です。ページを閉じるとリセットされます。");
                     }
                 });
 
@@ -696,6 +701,16 @@
                 document.getElementById('setting-accent-color').value = settings.accentColor;
                 document.getElementById('setting-dark-mode').checked = settings.isDarkMode;
                 document.querySelector(`input[name="clock-type"][value="${settings.clockType}"]`).checked = true;
+
+                // Initialize Audio object from stored URL
+                // Ensure settings.alarmSoundUrl is a string before creating Audio object
+                if (typeof settings.alarmSoundUrl === 'string' && settings.alarmSoundUrl) {
+                    settings.alarmSound = new Audio(settings.alarmSoundUrl);
+                } else {
+                    // Fallback to default if URL is not valid or not set
+                    settings.alarmSound = new Audio('https://www.soundjay.com/buttons/beep-07a.mp3');
+                    settings.alarmSoundUrl = 'https://www.soundjay.com/buttons/beep-07a.mp3';
+                }
             }
 
             function applyAccentColor() {
@@ -712,9 +727,8 @@
             }
             
             function saveSettings() {
-                // alarmSound is an Audio object and cannot be saved. If URL is to be saved, separate handling is needed.
-                // For now, an Audio object is temporarily created on file selection, but not persisted.
-                const { alarmSound, ...savableSettings } = settings;
+                // Exclude the Audio object itself, but include alarmSoundUrl
+                const { alarmSound, ...savableSettings } = settings; 
                 localStorage.setItem('pomodoroSettings', JSON.stringify(savableSettings));
             }
 
@@ -722,7 +736,7 @@
                 const saved = localStorage.getItem('pomodoroSettings');
                 if (saved) {
                     const loadedSettings = JSON.parse(saved);
-                    // alarmSound will revert to default on load or be overwritten by file selection
+                    // Merge loaded settings, which now includes alarmSoundUrl
                     settings = { ...settings, ...loadedSettings };
                 }
             }
