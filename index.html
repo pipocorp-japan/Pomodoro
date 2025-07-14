@@ -581,7 +581,8 @@
                         timerState = 'stopped';
                         playPauseIcon.textContent = 'replay';
                         settings.alarmSound.play();
-                        saveRecord(settings.workTime); // Save record upon completion
+                        // 完了時に記録を保存する際、設定時間ではなく経過時間を保存
+                        saveRecord(settings.workTime - Math.floor(remainingTime / 60)); // 経過時間を保存
                         // Show confirmation dialog when timer finishes
                         document.getElementById('confirm-dialog').querySelector('h3').textContent = '集中時間終了！';
                         document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = 'お疲れ様でした！記録を保存しますか？';
@@ -624,11 +625,11 @@
                             stopTimer(); // Stop timer, do not save record
                             confirmDialog.style.display = 'none';
                             switchScreen('main-screen');
-                            // Restore button text and event listener
+                            // Restore button text and event listener for future use
                             document.getElementById('confirm-ok').textContent = '保存して終了';
                             document.getElementById('confirm-ok').onclick = () => {
                                 stopTimer();
-                                saveRecord(settings.workTime - Math.ceil(currentRemainingTime / 60)); // Save elapsed time
+                                saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); // 経過時間を保存
                                 confirmDialog.style.display = 'none';
                                 switchScreen('main-screen');
                             };
@@ -643,7 +644,8 @@
                 // Initial "Save and Exit" button event listener
                 document.getElementById('confirm-ok').addEventListener('click', () => {
                     stopTimer(); // Stop timer
-                    saveRecord(settings.workTime); // Save focus time
+                    // ここも、常に設定値ではなく、経過時間を保存するように修正
+                    saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); // 経過時間を保存
                     console.log('記録を保存しました');
                     confirmDialog.style.display = 'none';
                     switchScreen('main-screen');
