@@ -383,10 +383,6 @@
                     <span class="material-symbols-outlined">self_improvement</span>
                     集中する
                 </button>
-                <button id="view-records-btn" class="main-btn">
-                    <span class="material-symbols-outlined">bar_chart</span>
-                    記録を見る
-                </button>
             </div>
         </main>
 
@@ -404,24 +400,6 @@
             <button id="play-pause-btn" aria-label="再生">
                 <span id="play-pause-icon" class="material-symbols-outlined">play_arrow</span>
             </button>
-        </section>
-
-        <section id="records-screen" class="screen">
-            <header class="header" style="justify-content: flex-start;">
-                   <button class="icon-btn back-to-main-btn" aria-label="戻る">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                </button>
-            </header>
-            
-            <div class="time-range-selector">
-                <button class="active" data-range="day">日</button>
-                <button data-range="week">週</button>
-                <button data-range="month">月</button>
-                <button data-range="year">年</button>
-            </div>
-            <div id="chart-container">
-                <canvas id="records-chart"></canvas>
-            </div>
         </section>
     </div>
 
@@ -486,7 +464,6 @@
             // --- DOM element retrieval ---
             const mainScreen = document.getElementById('main-screen');
             const timerScreen = document.getElementById('timer-screen');
-            const recordsScreen = document.getElementById('records-screen');
             const settingsModal = document.getElementById('settings-modal');
             const confirmDialog = document.getElementById('confirm-dialog');
             
@@ -505,13 +482,14 @@
             const timeRangeButtons = document.querySelectorAll('.time-range-selector button');
 
             // --- Settings (JS object) ---
+            // Settings will always start with default values as saving is removed
             let settings = {
                 workTime: 25,
                 breakTime: 5,
                 accentColor: '#007AFF',
                 isDarkMode: false,
                 clockType: 'digital',
-                alarmSoundUrl: 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3', // Updated alarm sound URL
+                alarmSoundUrl: 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3', // User-specified URL
                 alarmSound: null // Will be initialized later
             };
 
@@ -522,18 +500,19 @@
             let currentRemainingTime = 0; // Current remaining time (seconds)
             let hasTimerStartedOnce = false; // Has the timer started at least once?
             let chartInstance = null; // Chart.js instance
-            let records = []; // Array to store focus time records
+            // Records will always start as an empty array as saving is removed
+            let records = []; // Array to store focus time records (session-only)
 
             // --- Initialization process ---
             function init() {
-                loadSettings();
-                applySettings();
-                loadRecords(); // Load records
+                // No need to load settings from localStorage
+                applySettings(); // Apply default settings
+                // No need to load records from localStorage
                 setupEventListeners();
                 updateMainClock();
                 setInterval(updateMainClock, 1000);
                 createTimerWorker();
-                saveSettings(); // Ensure settings are saved after initial load/apply
+                // No need to save settings initially as saving is removed
             }
             
             // --- Create Web Worker ---
@@ -595,7 +574,7 @@
                             console.error("アラーム音の再生に失敗しました:", error);
                             // Optionally, play a fallback sound or show a message
                         }
-                        // Save record upon completion, using actual elapsed time
+                        // Save record upon completion, using actual elapsed time (session-only)
                         saveRecord(settings.workTime - Math.floor(remainingTime / 60)); 
                         // Show confirmation dialog when timer finishes
                         document.getElementById('confirm-dialog').querySelector('h3').textContent = '集中時間終了！';
@@ -657,9 +636,9 @@
                 // Initial "Save and Exit" button event listener
                 document.getElementById('confirm-ok').addEventListener('click', () => {
                     stopTimer(); // Stop timer
-                    // Save elapsed time
+                    // Save elapsed time (session-only)
                     saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); 
-                    console.log('記録を保存しました');
+                    console.log('記録を保存しました (セッション限り)');
                     confirmDialog.style.display = 'none';
                     switchScreen('main-screen');
                 });
@@ -668,14 +647,14 @@
                 // Timer operations
                 playPauseBtn.addEventListener('click', toggleTimer);
 
-                // Settings changes
-                document.getElementById('setting-work-time').addEventListener('change', e => { settings.workTime = parseInt(e.target.value); saveSettings(); });
-                document.getElementById('setting-break-time').addEventListener('change', e => { settings.breakTime = parseInt(e.target.value); saveSettings(); });
-                document.getElementById('setting-accent-color').addEventListener('input', e => { settings.accentColor = e.target.value; applyAccentColor(); });
-                document.getElementById('setting-accent-color').addEventListener('change', saveSettings);
-                document.getElementById('setting-dark-mode').addEventListener('change', e => { settings.isDarkMode = e.target.checked; applyDarkMode(); saveSettings(); });
+                // Settings changes (affect current session only)
+                document.getElementById('setting-work-time').addEventListener('change', e => { settings.workTime = parseInt(e.target.value); applySettings(); }); // Apply directly
+                document.getElementById('setting-break-time').addEventListener('change', e => { settings.breakTime = parseInt(e.target.value); applySettings(); }); // Apply directly
+                document.getElementById('setting-accent-color').addEventListener('input', e => { settings.accentColor = e.target.value; applyAccentColor(); }); // Apply directly
+                document.getElementById('setting-accent-color').addEventListener('change', applySettings); // Apply directly
+                document.getElementById('setting-dark-mode').addEventListener('change', e => { settings.isDarkMode = e.target.checked; applyDarkMode(); }); // Apply directly
                 document.querySelectorAll('input[name="clock-type"]').forEach(radio => {
-                    radio.addEventListener('change', e => { settings.clockType = e.target.value; applyClockType(); saveSettings(); });
+                    radio.addEventListener('change', e => { settings.clockType = e.target.value; applyClockType(); }); // Apply directly
                 });
                 document.getElementById('setting-alarm-file').addEventListener('change', e => {
                     const file = e.target.files[0];
@@ -683,8 +662,7 @@
                         const url = URL.createObjectURL(file);
                         settings.alarmSound = new Audio(url); // Create Audio object from temporary URL
                         settings.alarmSoundUrl = url; // Store the temporary URL (will not persist across sessions)
-                        saveSettings(); // Save other settings, but this URL won't persist
-                        console.warn("カスタムアラーム音はブラウザセッション中のみ有効です。ページを閉じるとリセットされます。永続化するには、URL指定可能な音源を使用してください。");
+                        console.warn("カスタムアラーム音はブラウザセッション中のみ有効です。ページを閉じるとリセットされます。");
                     }
                 });
 
@@ -698,7 +676,7 @@
                 });
             }
 
-            // --- Apply and save settings ---
+            // --- Apply settings (no saving) ---
             function applySettings() {
                 applyAccentColor();
                 applyDarkMode();
@@ -711,7 +689,6 @@
                 document.querySelector(`input[name="clock-type"][value="${settings.clockType}"]`).checked = true;
 
                 // Initialize Audio object from stored URL
-                // Ensure settings.alarmSoundUrl is a string before creating Audio object
                 if (typeof settings.alarmSoundUrl === 'string' && settings.alarmSoundUrl) {
                     settings.alarmSound = new Audio(settings.alarmSoundUrl);
                     console.log('Alarm sound initialized with URL:', settings.alarmSoundUrl);
@@ -736,37 +713,14 @@
                 analogClock.style.display = settings.clockType === 'analog' ? 'block' : 'none';
             }
             
-            function saveSettings() {
-                try {
-                    // Exclude the Audio object itself, but include alarmSoundUrl
-                    const { alarmSound, ...savableSettings } = settings; 
-                    localStorage.setItem('pomodoroSettings', JSON.stringify(savableSettings));
-                    console.log('Settings saved to localStorage:', savableSettings);
-                    console.log('Saved alarmSoundUrl (diagnostic):', savableSettings.alarmSoundUrl); // Diagnostic log
-                    console.log('JSON string to be saved (diagnostic):', JSON.stringify(savableSettings)); // Diagnostic log
-                } catch (e) {
-                    console.error('Failed to save settings to localStorage:', e);
-                    // Optionally, provide a user-facing message if saving fails, e.g., due to privacy settings
-                    // alert("設定の保存に失敗しました。ブラウザのプライバシー設定をご確認ください。"); // alertは使用しない
-                }
-            }
+            // saveSettings function removed - settings are not persisted
+            // function saveSettings() { ... }
 
+            // loadSettings function simplified - settings are not loaded from persistence
             function loadSettings() {
-                try {
-                    const saved = localStorage.getItem('pomodoroSettings');
-                    if (saved) {
-                        const loadedSettings = JSON.parse(saved);
-                        settings = { ...settings, ...loadedSettings };
-                        console.log('Settings loaded from localStorage:', loadedSettings);
-                        console.log('Loaded alarmSoundUrl (diagnostic):', loadedSettings.alarmSoundUrl); // Diagnostic log
-                    } else {
-                        console.log('No saved settings found in localStorage. Using default settings.');
-                    }
-                } catch (e) {
-                    console.error('Failed to load settings from localStorage:', e);
-                    // Optionally, provide a user-facing message if loading fails
-                    // alert("設定の読み込みに失敗しました。"); // alertは使用しない
-                }
+                // Settings are now always initialized to default values in the `settings` object.
+                // No need to load from localStorage.
+                console.log('保存機能が削除されたため、設定はデフォルト値で初期化されます。');
             }
             
             // --- Screen switching ---
@@ -843,19 +797,18 @@
                 progressBarInner.style.width = `${progressPercentage}%`;
             }
 
-            // --- Save and load records ---
+            // --- Save and load records --- (Removed persistence)
             function saveRecord(durationMinutes) {
                 const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
                 records.push({ date: today, duration: durationMinutes });
-                localStorage.setItem('pomodoroRecords', JSON.stringify(records));
-                renderChart(); // Redraw chart when records are updated
+                renderChart(); // Redraw chart when records are updated (session-only)
             }
 
             function loadRecords() {
-                const savedRecords = localStorage.getItem('pomodoroRecords');
-                if (savedRecords) {
-                    records = JSON.parse(savedRecords);
-                }
+                // Records are now always initialized as an empty array.
+                // No need to load from localStorage.
+                records = []; // Ensure it's empty on load
+                console.log('保存機能が削除されたため、記録はセッション限りです。');
             }
 
             // --- Render records chart ---
