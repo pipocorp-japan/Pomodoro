@@ -509,7 +509,7 @@
                 accentColor: '#007AFF',
                 isDarkMode: false,
                 clockType: 'digital',
-                alarmSoundUrl: 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3', // Store URL string, changed to a working URL
+                alarmSoundUrl: 'https://www.soundjay.com/buttons/beep-07a.mp3', // Store URL string, changed to a working URL
                 alarmSound: null // Will be initialized later
             };
 
@@ -582,7 +582,12 @@
                         timerState = 'stopped';
                         playPauseIcon.textContent = 'replay';
                         try {
-                            settings.alarmSound.play(); // Play alarm sound
+                            // アラーム音が初期化されていることを確認してから再生を試みる
+                            if (settings.alarmSound) {
+                                settings.alarmSound.play(); // Play alarm sound
+                            } else {
+                                console.warn("アラーム音が初期化されていません。");
+                            }
                         } catch (error) {
                             console.error("アラーム音の再生に失敗しました:", error);
                             // Optionally, play a fallback sound or show a message
@@ -675,8 +680,8 @@
                         const url = URL.createObjectURL(file);
                         settings.alarmSound = new Audio(url); // Create Audio object from temporary URL
                         settings.alarmSoundUrl = url; // Store the temporary URL (will not persist across sessions)
-                        saveSettings(); 
-                        console.warn("カスタムアラーム音はブラウザセッション中のみ有効です。ページを閉じるとリセットされます。");
+                        saveSettings(); // Save other settings, but this URL won't persist
+                        console.warn("カスタムアラーム音はブラウザセッション中のみ有効です。ページを閉じるとリセットされます。永続化するには、URL指定可能な音源を使用してください。");
                     }
                 });
 
@@ -727,17 +732,32 @@
             }
             
             function saveSettings() {
-                // Exclude the Audio object itself, but include alarmSoundUrl
-                const { alarmSound, ...savableSettings } = settings; 
-                localStorage.setItem('pomodoroSettings', JSON.stringify(savableSettings));
+                try {
+                    // Exclude the Audio object itself, but include alarmSoundUrl
+                    const { alarmSound, ...savableSettings } = settings; 
+                    localStorage.setItem('pomodoroSettings', JSON.stringify(savableSettings));
+                    console.log('Settings saved to localStorage:', savableSettings);
+                } catch (e) {
+                    console.error('Failed to save settings to localStorage:', e);
+                    // Optionally, provide a user-facing message if saving fails, e.g., due to privacy settings
+                    // alert("設定の保存に失敗しました。ブラウザのプライバシー設定をご確認ください。"); // alertは使用しない
+                }
             }
 
             function loadSettings() {
-                const saved = localStorage.getItem('pomodoroSettings');
-                if (saved) {
-                    const loadedSettings = JSON.parse(saved);
-                    // Merge loaded settings, which now includes alarmSoundUrl
-                    settings = { ...settings, ...loadedSettings };
+                try {
+                    const saved = localStorage.getItem('pomodoroSettings');
+                    if (saved) {
+                        const loadedSettings = JSON.parse(saved);
+                        settings = { ...settings, ...loadedSettings };
+                        console.log('Settings loaded from localStorage:', loadedSettings);
+                    } else {
+                        console.log('No saved settings found in localStorage. Using default settings.');
+                    }
+                } catch (e) {
+                    console.error('Failed to load settings from localStorage:', e);
+                    // Optionally, provide a user-facing message if loading fails
+                    // alert("設定の読み込みに失敗しました。"); // alertは使用しない
                 }
             }
             
