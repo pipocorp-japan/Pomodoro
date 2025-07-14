@@ -481,6 +481,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('アプリケーションが初期化されています...');
+
             // --- DOM element retrieval ---
             const mainScreen = document.getElementById('main-screen');
             const timerScreen = document.getElementById('timer-screen');
@@ -509,7 +511,7 @@
                 accentColor: '#007AFF',
                 isDarkMode: false,
                 clockType: 'digital',
-                alarmSoundUrl: 'https://www.soundjay.com/buttons/beep-07a.mp3', // Store URL string, changed to a working URL
+                alarmSoundUrl: 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3', // Updated alarm sound URL
                 alarmSound: null // Will be initialized later
             };
 
@@ -711,10 +713,12 @@
                 // Ensure settings.alarmSoundUrl is a string before creating Audio object
                 if (typeof settings.alarmSoundUrl === 'string' && settings.alarmSoundUrl) {
                     settings.alarmSound = new Audio(settings.alarmSoundUrl);
+                    console.log('Alarm sound initialized with URL:', settings.alarmSoundUrl);
                 } else {
                     // Fallback to default if URL is not valid or not set
                     settings.alarmSound = new Audio('https://www.soundjay.com/buttons/beep-07a.mp3');
                     settings.alarmSoundUrl = 'https://www.soundjay.com/buttons/beep-07a.mp3';
+                    console.warn('Alarm sound URL not found or invalid, falling back to default.');
                 }
             }
 
