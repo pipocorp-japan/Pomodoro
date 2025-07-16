@@ -601,7 +601,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     timerScreenClock.style.visibility = settings.showTimerClock ? "visible" : "hidden";
     progressBarTypeContainer.style.display = settings.showProgressBar ? "flex" : "none";
     circularProgressContainer.classList.toggle("hidden", !settings.showProgressBar || settings.progressBarType!="circular");
-    linearProgressContainer.classList.toggle("invisible h-0", !settings.showProgressBar || settings.progressBarType==="circular");
+    // linear bar visibility and height class toggles separately
+linearProgressContainer.classList.toggle("invisible", !settings.showProgressBar || settings.progressBarType === "circular");
+linearProgressContainer.classList.toggle("h-0", !settings.showProgressBar || settings.progressBarType === "circular");
     alarmAudio.src = settings.alarmSound;
   }
 
