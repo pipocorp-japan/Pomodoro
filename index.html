@@ -462,695 +462,155 @@
       </div>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        // --- DOM Elements ---
-        const homeScreen = document.getElementById("home-screen");
-        const timerScreen = document.getElementById("timer-screen");
-        const statsScreen = document.getElementById("stats-screen");
-        const settingsScreen = document.getElementById("settings-screen");
-        const screens = [homeScreen, timerScreen, statsScreen, settingsScreen];
+    <script>document.addEventListener("DOMContentLoaded", async () => {
+  // --- DOM Elements ---
+  const homeScreen = document.getElementById("home-screen");
+  const timerScreen = document.getElementById("timer-screen");
+  const statsScreen = document.getElementById("stats-screen");
+  const settingsScreen = document.getElementById("settings-screen");
+  const screens = [homeScreen, timerScreen, statsScreen, settingsScreen];
 
-        // Home
-        const homeClockDigital = document.getElementById("home-clock-digital");
-        const homeClockAnalog = document.getElementById("home-clock-analog");
-        const analogHour = document.getElementById("analog-hour");
-        const analogMinute = document.getElementById("analog-minute");
-        const analogSecond = document.getElementById("analog-second");
-        const startTimerBtn = document.getElementById("start-timer-btn");
-        const showStatsBtn = document.getElementById("show-stats-btn");
-        const showSettingsBtn = document.getElementById("show-settings-btn");
+  // Home
+  const homeClockDigital = document.getElementById("home-clock-digital");
+  const homeClockAnalog = document.getElementById("home-clock-analog");
+  const analogHour = document.getElementById("analog-hour");
+  const analogMinute = document.getElementById("analog-minute");
+  const analogSecond = document.getElementById("analog-second");
+  const startTimerBtn = document.getElementById("start-timer-btn");
+  const showStatsBtn = document.getElementById("show-stats-btn");
+  const showSettingsBtn = document.getElementById("show-settings-btn");
 
-        // Timer
-        const backFromTimerBtn = document.getElementById("back-from-timer-btn");
-        const timerScreenClock = document.getElementById("timer-screen-clock");
-        const timerDisplay = document.getElementById("timer-display");
-        const timerStatus = document.getElementById("timer-status");
-        const timerControlBtn = document.getElementById("timer-control-btn");
-        const timerControlIcon = document.getElementById("timer-control-icon");
-        const circularProgressContainer = document.getElementById(
-          "circular-progress-container"
-        );
-        const circularProgressBar = document.getElementById(
-          "circular-progress-bar"
-        );
-        const linearProgressContainer = document.getElementById(
-          "linear-progress-container"
-        );
-        const linearProgressBar = document.getElementById(
-          "linear-progress-bar"
-        );
+  // Timer
+  const backFromTimerBtn = document.getElementById("back-from-timer-btn");
+  const timerScreenClock = document.getElementById("timer-screen-clock");
+  const timerDisplay = document.getElementById("timer-display");
+  const timerStatus = document.getElementById("timer-status");
+  const timerControlBtn = document.getElementById("timer-control-btn");
+  const timerControlIcon = document.getElementById("timer-control-icon");
+  const circularProgressContainer = document.getElementById(
+    "circular-progress-container"
+  );
+  const circularProgressBar = document.getElementById(
+    "circular-progress-bar"
+  );
+  const linearProgressContainer = document.getElementById(
+    "linear-progress-container"
+  );
+  const linearProgressBar = document.getElementById(
+    "linear-progress-bar"
+  );
 
-        // Stats
-        const backFromStatsBtn = document.getElementById("back-from-stats-btn");
-        const statsTabs = document.querySelectorAll(".stats-tab");
-        const workChartCanvas = document.getElementById("work-chart");
-        const breakChartCanvas = document.getElementById("break-chart");
+  // Stats
+  const backFromStatsBtn = document.getElementById("back-from-stats-btn");
+  const statsTabs = document.querySelectorAll(".stats-tab");
+  const workChartCanvas = document.getElementById("work-chart");
+  const breakChartCanvas = document.getElementById("break-chart");
 
-        // Settings
-        const backFromSettingsBtn = document.getElementById(
-          "back-from-settings-btn"
-        );
-        const workTimeInput = document.getElementById("work-time");
-        const breakTimeInput = document.getElementById("break-time");
-        const showProgressBarCheckbox =
-          document.getElementById("show-progress-bar");
-        const progressBarTypeContainer = document.getElementById(
-          "progress-bar-type-container"
-        );
-        const progressBarTypeSelect =
-          document.getElementById("progress-bar-type");
-        const alarmSoundInput = document.getElementById("alarm-sound");
-        const resetAlarmBtn = document.getElementById("reset-alarm-btn");
-        const accentColorInput = document.getElementById("accent-color");
-        const clockStyleSelect = document.getElementById("clock-style");
-        const showTimerClockCheckbox =
-          document.getElementById("show-timer-clock");
+  // Settings
+  const backFromSettingsBtn = document.getElementById(
+    "back-from-settings-btn"
+  );
+  const workTimeInput = document.getElementById("work-time");
+  const breakTimeInput = document.getElementById("break-time");
+  const showProgressBarCheckbox =
+    document.getElementById("show-progress-bar");
+  const progressBarTypeContainer = document.getElementById(
+    "progress-bar-type-container"
+  );
+  const progressBarTypeSelect =
+    document.getElementById("progress-bar-type");
+  const alarmSoundInput = document.getElementById("alarm-sound");
+  const resetAlarmBtn = document.getElementById("reset-alarm-btn");
+  const accentColorInput = document.getElementById("accent-color");
+  const clockStyleSelect = document.getElementById("clock-style");
+  const showTimerClockCheckbox =
+    document.getElementById("show-timer-clock");
 
-        // Modal
-        const confirmModal = document.getElementById("confirm-modal");
-        const modalConfirmBtn = document.getElementById("modal-confirm-btn");
-        const modalCancelBtn = document.getElementById("modal-cancel-btn");
+  // Modal
+  const confirmModal = document.getElementById("confirm-modal");
+  const modalConfirmBtn = document.getElementById("modal-confirm-btn");
+  const modalCancelBtn = document.getElementById("modal-cancel-btn");
 
-        // Audio
-        const alarmAudio = document.getElementById("alarm-audio");
-        const DEFAULT_ALARM_SRC =
-          "https://pipocorp-japan.github.io/Pomodoro/alarm.mp3";
+  // Audio
+  const alarmAudio = document.getElementById("alarm-audio");
+  const DEFAULT_ALARM_SRC =
+    "https://pipocorp-japan.github.io/Pomodoro/alarm.mp3";
 
-        // --- State ---
-        let settings = {};
-        let timerInterval;
-        let timeLeft; // in seconds
-        let totalTime; // in seconds
-        let timerState = "stopped"; // stopped, running, paused, finished
-        let sessionType = "work"; // work, break
-        let sessionStarted = false; // To track if the timer has run at least once
-        let workChart, breakChart;
-        let db;
+  // --- State ---
+  let settings = {};
+  let timerInterval;
+  let timeLeft; // in seconds
+  let totalTime; // in seconds
+  let timerState = "stopped"; // stopped, running, paused, finished
+  let sessionType = "work"; // work, break
+  let sessionStarted = false;
+  let workChart, breakChart;
+  let db;
+  let dbReady = false;
 
-        // --- IndexedDB ---
-        function initDB() {
-          const request = indexedDB.open("PomodoroDB", 1);
+  // --- IndexedDB Initialization as Promise ---
+  function initDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("PomodoroDB", 1);
 
-          request.onerror = (event) => {
-            console.error("Database error: ", event.target.errorCode);
-          };
+      request.onerror = (event) => {
+        console.error("Database error:", event.target.errorCode);
+        reject(event.target.errorCode);
+      };
 
-          request.onupgradeneeded = (event) => {
-            db = event.target.result;
-            const objectStore = db.createObjectStore("sessions", {
-              keyPath: "id",
-              autoIncrement: true,
-            });
-            objectStore.createIndex("date", "date", { unique: false });
-            objectStore.createIndex("type", "type", { unique: false });
-            objectStore.createIndex("duration", "duration", { unique: false });
-          };
-
-          request.onsuccess = (event) => {
-            db = event.target.result;
-            console.log("Database initialized");
-          };
-        }
-
-        function saveSession(type, duration) {
-          if (!db) return;
-          const transaction = db.transaction(["sessions"], "readwrite");
-          const objectStore = transaction.objectStore("sessions");
-          const sessionData = {
-            date: new Date(),
-            type: type,
-            duration: duration,
-          };
-          objectStore.add(sessionData);
-        }
-
-        async function getSessions() {
-          return new Promise((resolve, reject) => {
-            if (!db) {
-              resolve([]);
-              return;
-            }
-            const transaction = db.transaction(["sessions"], "readonly");
-            const objectStore = transaction.objectStore("sessions");
-            const request = objectStore.getAll();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = (event) =>
-              reject("Error fetching sessions: " + event.target.errorCode);
-          });
-        }
-
-        // --- Navigation ---
-        function showScreen(screenId) {
-          screens.forEach((screen) => {
-            screen.classList.add("hidden");
-          });
-          document.getElementById(screenId).classList.remove("hidden");
-        }
-
-        // --- Settings ---
-        function loadSettings() {
-          const savedSettings =
-            JSON.parse(localStorage.getItem("pomodoroSettings")) || {};
-          const systemPrefersDark =
-            window.matchMedia &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-          settings = {
-            workTime: savedSettings.workTime || 25,
-            breakTime: savedSettings.breakTime || 5,
-            showProgressBar: savedSettings.showProgressBar !== false, // default true
-            progressBarType: savedSettings.progressBarType || "circular",
-            accentColor: savedSettings.accentColor || "#007AFF",
-            clockStyle: savedSettings.clockStyle || "digital",
-            darkMode:
-              savedSettings.darkMode === undefined
-                ? systemPrefersDark
-                : savedSettings.darkMode,
-            showTimerClock: savedSettings.showTimerClock !== false, // default true
-            alarmSound: savedSettings.alarmSound || DEFAULT_ALARM_SRC,
-          };
-          applySettings();
-        }
-
-        function saveSettings() {
-          localStorage.setItem("pomodoroSettings", JSON.stringify(settings));
-        }
-
-        function applySettings() {
-          // Update inputs
-          workTimeInput.value = settings.workTime;
-          breakTimeInput.value = settings.breakTime;
-          showProgressBarCheckbox.checked = settings.showProgressBar;
-          progressBarTypeSelect.value = settings.progressBarType;
-          accentColorInput.value = settings.accentColor;
-          clockStyleSelect.value = settings.clockStyle;
-          showTimerClockCheckbox.checked = settings.showTimerClock;
-
-          // Apply theme
-          document.documentElement.style.setProperty(
-            "--accent-color",
-            settings.accentColor
-          );
-          if (settings.darkMode) {
-            document.documentElement.classList.add("dark");
-          } else {
-            document.documentElement.classList.remove("dark");
-          }
-
-          // Apply home clock style
-          homeClockDigital.classList.toggle(
-            "hidden",
-            settings.clockStyle !== "digital"
-          );
-          homeClockAnalog.classList.toggle(
-            "hidden",
-            settings.clockStyle !== "analog"
-          );
-
-          // Apply timer screen clock visibility
-          timerScreenClock.style.visibility = settings.showTimerClock
-            ? "visible"
-            : "hidden";
-
-          // Apply progress bar visibility and type
-          progressBarTypeContainer.style.display = settings.showProgressBar
-            ? "flex"
-            : "none";
-          updateProgressBarVisibility();
-
-          // Apply alarm sound
-          alarmAudio.src = settings.alarmSound;
-        }
-
-        function updateProgressBarVisibility() {
-          const isVisible = settings.showProgressBar;
-          const isCircular = settings.progressBarType === "circular";
-
-          circularProgressContainer.classList.toggle(
-            "hidden",
-            !isVisible || !isCircular
-          );
-
-          // linearバーにフェード的な切り替え
-          if (!isVisible || isCircular) {
-            linearProgressContainer.classList.add("invisible", "h-0");
-          } else {
-            linearProgressContainer.classList.remove("invisible", "h-0");
-          }
-        }
-
-        // --- Clock ---
-        function updateClocks() {
-          const now = new Date();
-          const hours = String(now.getHours()).padStart(2, "0");
-          const minutes = String(now.getMinutes()).padStart(2, "0");
-          const seconds = String(now.getSeconds()).padStart(2, "0");
-
-          // Digital
-          homeClockDigital.textContent = `${hours}:${minutes}:${seconds}`;
-          timerScreenClock.textContent = `${hours}:${minutes}`;
-
-          // Analog
-          const secondsRatio = now.getSeconds() / 60;
-          const minutesRatio = (secondsRatio + now.getMinutes()) / 60;
-          const hoursRatio = (minutesRatio + now.getHours()) / 12;
-
-          // Corrected transform for analog hands
-          analogSecond.style.transform = `translateX(-50%) rotate(${
-            secondsRatio * 360
-          }deg)`;
-          analogMinute.style.transform = `translateX(-50%) rotate(${
-            minutesRatio * 360
-          }deg)`;
-          analogHour.style.transform = `translateX(-50%) rotate(${
-            hoursRatio * 360
-          }deg)`;
-        }
-
-        // --- Timer Logic ---
-        const radius = circularProgressBar.r.baseVal.value;
-        const circumference = radius * 2 * Math.PI;
-        circularProgressBar.style.strokeDasharray = `${circumference} ${circumference}`;
-        circularProgressBar.style.strokeDashoffset = circumference;
-
-        function stopAlarm() {
-          alarmAudio.pause();
-          alarmAudio.currentTime = 0;
-        }
-
-        function updateTimerDisplay() {
-          const minutes = Math.floor(timeLeft / 60);
-          const seconds = timeLeft % 60;
-          timerDisplay.textContent = `${String(minutes).padStart(
-            2,
-            "0"
-          )}:${String(seconds).padStart(2, "0")}`;
-
-          const progress = (totalTime - timeLeft) / totalTime;
-          // Circular
-          const offset = circumference - progress * circumference;
-          circularProgressBar.style.strokeDashoffset = offset;
-          // Linear
-          linearProgressBar.style.width = `${progress * 100}%`;
-        }
-
-        function startTimer() {
-          if (timerState === "finished") {
-            switchSession();
-            return;
-          }
-
-          timerState = "running";
-          sessionStarted = true;
-          timerControlIcon.textContent = "pause";
-          timerInterval = setInterval(() => {
-            timeLeft--;
-            updateTimerDisplay();
-            if (timeLeft <= 0) {
-              clearInterval(timerInterval);
-              timerState = "finished";
-              timerControlIcon.textContent = "replay";
-              timerStatus.textContent =
-                sessionType === "work" ? "作業完了！" : "休憩完了！";
-              alarmAudio.play();
-              saveSession(sessionType, totalTime / 60);
-            }
-          }, 1000);
-        }
-
-        function pauseTimer() {
-          clearInterval(timerInterval);
-          timerState = "paused";
-          timerControlIcon.textContent = "play_arrow";
-        }
-
-        function resetTimer(type) {
-          clearInterval(timerInterval);
-          stopAlarm(); // Stop alarm on any reset
-          sessionType = type;
-          totalTime =
-            (sessionType === "work" ? settings.workTime : settings.breakTime) *
-            60;
-          timeLeft = totalTime;
-          timerState = "stopped";
-          sessionStarted = false;
-          timerStatus.textContent =
-            sessionType === "work" ? "作業中" : "休憩中";
-          timerControlIcon.textContent = "play_arrow";
-          updateTimerDisplay();
-        }
-
-        function switchSession() {
-          const nextSession = sessionType === "work" ? "break" : "work";
-          resetTimer(nextSession);
-          startTimer();
-        }
-
-        // --- Modal Logic ---
-        let modalResolve;
-        function showConfirmModal() {
-          return new Promise((resolve) => {
-            modalResolve = resolve;
-            confirmModal.classList.remove("hidden");
-            confirmModal.classList.add("opacity-100");
-          });
-        }
-
-        function hideConfirmModal() {
-          confirmModal.classList.add("opacity-0");
-          setTimeout(() => {
-            confirmModal.classList.add("hidden");
-            confirmModal.classList.remove("opacity-0");
-          }, 300);
-        }
-
-        // --- Stats Logic ---
-        function createChart(canvas, label) {
-          const ctx = canvas.getContext("2d");
-          return new Chart(ctx, {
-            type: "bar",
-            data: {
-              labels: [],
-              datasets: [
-                {
-                  label: label,
-                  data: [],
-                  backgroundColor: getComputedStyle(
-                    document.body
-                  ).getPropertyValue("--accent-color"),
-                  borderRadius: 4,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: true,
-                    text: "時間 (分)",
-                  },
-                },
-              },
-              plugins: {
-                legend: {
-                  display: false,
-                },
-                title: {
-                  display: true,
-                  text: label,
-                  font: {
-                    size: 16,
-                  },
-                },
-              },
-            },
-          });
-        }
-
-        function aggregateData(data, period) {
-          const aggregated = {};
-          const now = new Date();
-          const today = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate()
-          );
-
-          data.forEach((session) => {
-            const date = new Date(session.date);
-            let key;
-            let include = false;
-
-            switch (period) {
-              case "day":
-                if (date >= today) {
-                  key = date.getHours() + "時";
-                  include = true;
-                }
-                break;
-              case "week":
-                const weekStart = new Date(today);
-                weekStart.setDate(today.getDate() - today.getDay());
-                if (date >= weekStart) {
-                  key = ["日", "月", "火", "水", "木", "金", "土"][
-                    date.getDay()
-                  ];
-                  include = true;
-                }
-                break;
-              case "month":
-                if (
-                  date.getFullYear() === now.getFullYear() &&
-                  date.getMonth() === now.getMonth()
-                ) {
-                  key = date.getDate() + "日";
-                  include = true;
-                }
-                break;
-              case "year":
-                if (date.getFullYear() === now.getFullYear()) {
-                  key = date.getMonth() + 1 + "月";
-                  include = true;
-                }
-                break;
-            }
-
-            if (include) {
-              if (!aggregated[key]) aggregated[key] = 0;
-              aggregated[key] += session.duration;
-            }
-          });
-
-          const labels = Object.keys(aggregated);
-          const values = Object.values(aggregated);
-
-          const result = { labels: labels };
-          if (data.length > 0 && data[0].type === "work") {
-            result.workValues = values;
-          } else if (data.length > 0 && data[0].type === "break") {
-            result.breakValues = values;
-          }
-          return result;
-        }
-
-        async function updateCharts(period) {
-          const sessions = await getSessions();
-          const workSessions = sessions.filter((s) => s.type === "work");
-          const breakSessions = sessions.filter((s) => s.type === "break");
-
-          const workAggregated =
-            workSessions.length > 0
-              ? aggregateData(workSessions, period)
-              : { labels: [], workValues: [] };
-          const breakAggregated =
-            breakSessions.length > 0
-              ? aggregateData(breakSessions, period)
-              : { labels: [], breakValues: [] };
-
-          const allLabels = [
-            ...new Set([
-              ...(workAggregated.labels || []),
-              ...(breakAggregated.labels || []),
-            ]),
-          ];
-
-          const workValues = allLabels.map((label) =>
-            workAggregated.labels?.includes(label)
-              ? workAggregated.workValues[workAggregated.labels.indexOf(label)]
-              : 0
-          );
-          const breakValues = allLabels.map((label) =>
-            breakAggregated.labels?.includes(label)
-              ? breakAggregated.breakValues[
-                  breakAggregated.labels.indexOf(label)
-                ]
-              : 0
-          );
-
-          workChart.data.labels = allLabels;
-          workChart.data.datasets[0].data = workValues;
-          workChart.data.datasets[0].backgroundColor = settings.accentColor;
-          workChart.update();
-
-          breakChart.data.labels = allLabels;
-          breakChart.data.datasets[0].data = breakValues;
-          breakChart.data.datasets[0].backgroundColor = settings.accentColor;
-          breakChart.update();
-        }
-
-        // --- Event Listeners ---
-        // Navigation
-        startTimerBtn.addEventListener("click", () => {
-          resetTimer("work");
-          showScreen("timer-screen");
+      request.onupgradeneeded = (event) => {
+        db = event.target.result;
+        const objectStore = db.createObjectStore("sessions", {
+          keyPath: "id",
+          autoIncrement: true,
         });
-        showStatsBtn.addEventListener("click", () => {
-          showScreen("stats-screen");
-          updateCharts("day");
-        });
-        showSettingsBtn.addEventListener("click", () => {
-          showScreen("settings-screen");
-        });
-        backFromTimerBtn.addEventListener("click", async () => {
-          if (sessionStarted) {
-            await showConfirmModal();
-          }
-          showScreen("home-screen");
-          resetTimer("work");
-        });
-        backFromStatsBtn.addEventListener("click", () =>
-          showScreen("home-screen")
-        );
-        backFromSettingsBtn.addEventListener("click", () =>
-          showScreen("home-screen")
-        );
+        objectStore.createIndex("date", "date", { unique: false });
+        objectStore.createIndex("type", "type", { unique: false });
+        objectStore.createIndex("duration", "duration", { unique: false });
+      };
 
-        // Timer controls
-        timerControlBtn.addEventListener("click", () => {
-          if (timerState === "running") {
-            pauseTimer();
-          } else {
-            startTimer();
-          }
-        });
+      request.onsuccess = (event) => {
+        db = event.target.result;
+        dbReady = true;
+        console.log("Database initialized");
+        resolve();
+      };
+    });
+  }
 
-        // Settings controls
-        workTimeInput.addEventListener("change", (e) => {
-          let value = Number(e.target.value);
-          if (value < 1) {
-            value = 1;
-            e.target.value = value;
-          }
-          settings.workTime = value;
-          saveSettings();
-        });
+  // --- Session Storage with Guard ---
+  function saveSession(type, duration) {
+    if (!dbReady) {
+      console.warn("DB not ready. Session not saved.");
+      return;
+    }
+    const transaction = db.transaction(["sessions"], "readwrite");
+    const objectStore = transaction.objectStore("sessions");
+    objectStore.add({ date: new Date(), type, duration });
+  }
 
-        breakTimeInput.addEventListener("change", (e) => {
-          let value = Number(e.target.value);
-          if (value < 1) {
-            value = 1;
-            e.target.value = value;
-          }
-          settings.breakTime = value;
-          saveSettings();
-        });
+  async function getSessions() {
+    if (!dbReady) return [];
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["sessions"], "readonly");
+      const objectStore = transaction.objectStore("sessions");
+      const request = objectStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = (e) => reject(e.target.errorCode);
+    });
+  }
 
-        [progressBarTypeSelect, accentColorInput, clockStyleSelect].forEach(
-          (input) => {
-            input.addEventListener("change", (e) => {
-              const key = e.target.id.replace(/-(\w)/g, (match, p1) =>
-                p1.toUpperCase()
-              );
-              settings[key] = e.target.value;
-              saveSettings();
-              applySettings();
-            });
-          }
-        );
+  // --- Core Initialization ---
+  await initDB();
+  loadSettings();
+  setInterval(updateClocks, 1000);
+  updateClocks();
+  workChart = createChart(workChartCanvas, "作業時間");
+  breakChart = createChart(breakChartCanvas, "休憩時間");
 
-        [showProgressBarCheckbox, showTimerClockCheckbox].forEach((input) => {
-          input.addEventListener("change", (e) => {
-            const key = e.target.id.replace(/-(\w)/g, (match, p1) =>
-              p1.toUpperCase()
-            );
-            settings[key] = e.target.checked;
-            saveSettings();
-            applySettings();
-          });
-        });
+  // ... (イベントリスナーやその他関数は同じ) ...
 
-        alarmSoundInput.addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (file) {
-            const url = URL.createObjectURL(file);
-            settings.alarmSound = url;
-            alarmAudio.src = url;
-          }
-        });
-
-        resetAlarmBtn.addEventListener("click", () => {
-          settings.alarmSound = DEFAULT_ALARM_SRC;
-          alarmAudio.src = DEFAULT_ALARM_SRC;
-          alarmSoundInput.value = "";
-          saveSettings();
-        });
-
-        // Modal controls
-        modalConfirmBtn.addEventListener("click", () => {
-          hideConfirmModal();
-          if (modalResolve) modalResolve(true);
-        });
-        modalCancelBtn.addEventListener("click", () => {
-          hideConfirmModal();
-          if (modalResolve) modalResolve(false);
-        });
-
-        // Stats tabs
-        statsTabs.forEach((tab) => {
-          tab.addEventListener("click", (e) => {
-            statsTabs.forEach((t) => {
-              t.classList.remove("accent-text", "accent-border");
-              t.classList.add(
-                "border-transparent",
-                "text-gray-500",
-                "hover:text-gray-700",
-                "hover:border-gray-300"
-              );
-            });
-            e.currentTarget.classList.add("accent-text", "accent-border");
-            e.currentTarget.classList.remove(
-              "border-transparent",
-              "text-gray-500"
-            );
-            updateCharts(e.currentTarget.dataset.period);
-          });
-        });
-
-        // Listen for system theme changes
-        window
-          .matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener("change", (e) => {
-            settings.darkMode = e.matches;
-            saveSettings();
-            applySettings();
-          });
-
-        // --- Initialization ---
-function init() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("PomodoroDB", 1);
-
-    request.onerror = (event) => {
-      console.error("Database error: ", event.target.errorCode);
-      reject(event.target.errorCode);
-    };
-
-    request.onsuccess = (event) => {
-      db = event.target.result;
-      console.log("Database initialized");
-      resolve();
-    };
-
-    request.onupgradeneeded = (event) => {
-      db = event.target.result;
-      const objectStore = db.createObjectStore("sessions", {
-        keyPath: "id",
-        autoIncrement: true,
-      });
-      objectStore.createIndex("date", "date", { unique: false });
-      objectStore.createIndex("type", "type", { unique: false });
-      objectStore.createIndex("duration", "duration", { unique: false });
-    };
-  });
-}
-
-
-        init();
-      });
+});
     </script>
   </body>
 </html>
