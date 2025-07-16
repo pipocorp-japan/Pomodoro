@@ -605,40 +605,49 @@ function updateProgressBarVisibility() {
             });
         }
 
-        function aggregateData(data, period) {
+       function aggregateData(data, period) {
             const aggregated = {};
             const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const today = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate()
+            );
 
-            data.forEach(session => {
+            data.forEach((session) => {
                 const date = new Date(session.date);
                 let key;
                 let include = false;
 
-                switch(period) {
-                    case 'day':
-                        if (date >= today) {
-                            key = date.getHours() + '時';
+                switch (period) {
+                    case "day":
+                        if (date.toDateString() === today.toDateString()) { // 今日のデータのみ
+                            key = date.getHours() + "時";
                             include = true;
                         }
                         break;
-                    case 'week':
-                        const weekStart = new Date(today);
-                        weekStart.setDate(today.getDate() - today.getDay());
-                        if (date >= weekStart) {
-                            key = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+                    case "week":
+                        // 各セッションの日付が属する「週」のキーを生成
+                        // ISO週番号（月曜日開始）を使用することが多いですが、ここでは簡単のため年の開始からの週数とします
+                        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                        const days = Math.floor((date - firstDayOfYear) / (24 * 60 * 60 * 1000));
+                        // 年の最初の週を0または1から始めるかによって調整
+                        // ここでは、単純に年の初めからの日数を7で割って週番号とします
+                        const weekNumber = Math.ceil(days / 7);
+
+                        key = `${date.getFullYear()}年 第${weekNumber}週`;
+                        include = true; // すべての期間の週データを集計対象とする
+                        break;
+                    case "month":
+                        if (date.getFullYear() === now.getFullYear() &&
+                            date.getMonth() === now.getMonth()) {
+                            key = date.getDate() + "日";
                             include = true;
                         }
                         break;
-                    case 'month':
-                        if (date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()) {
-                            key = (date.getDate()) + '日';
-                            include = true;
-                        }
-                        break;
-                    case 'year':
+                    case "year":
                         if (date.getFullYear() === now.getFullYear()) {
-                            key = (date.getMonth() + 1) + '月';
+                            key = date.getMonth() + 1 + "月";
                             include = true;
                         }
                         break;
@@ -650,13 +659,29 @@ function updateProgressBarVisibility() {
                 }
             });
 
-            const labels = Object.keys(aggregated);
-            const values = Object.values(aggregated);
-            
+            // 週表示の場合、キー（例: "2023年 第XX週"）でソートする
+            const labels = Object.keys(aggregated).sort((a, b) => {
+                if (period === "week") {
+                    const [yearA, weekA] = a.match(/(\d+)年 第(\d+)週/).slice(1).map(Number);
+                    const [yearB, weekB] = b.match(/(\d+)年 第(\d+)週/).slice(1).map(Number);
+                    if (yearA !== yearB) return yearA - yearB;
+                    return weekA - weekB;
+                }
+                // 他の期間のソートロジックはそのまま
+                return 0; // またはデフォルトのソート
+            });
+
+            const values = labels.map(label => aggregated[label]);
+
             const result = { labels: labels };
-            if (data.length > 0 && data[0].type === 'work') {
+            // session.type を見て workValues または breakValues を設定する既存のロジックは保持
+            // ただし、このaggregateDataはwork/breakで別々に呼ばれることを想定しているので、
+            // その呼び出し元が正しくフィルタリングしていれば、以下の分岐は簡略化できます。
+            // Chart.js の更新でデータセットの `data` を直接設定するのであれば、
+            // workAggregated, breakAggregated の `values` をそのまま使えばよい。
+            if (data.length > 0 && data[0].type === "work") {
                 result.workValues = values;
-            } else if (data.length > 0 && data[0].type === 'break') {
+            } else if (data.length > 0 && data[0].type === "break") {
                 result.breakValues = values;
             }
             return result;
