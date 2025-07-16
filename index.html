@@ -1120,14 +1120,34 @@
           });
 
         // --- Initialization ---
-        function init() {
-          initDB();
-          loadSettings();
-          setInterval(updateClocks, 1000);
-          updateClocks();
-          workChart = createChart(workChartCanvas, "作業時間");
-          breakChart = createChart(breakChartCanvas, "休憩時間");
-        }
+function init() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("PomodoroDB", 1);
+
+    request.onerror = (event) => {
+      console.error("Database error: ", event.target.errorCode);
+      reject(event.target.errorCode);
+    };
+
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      console.log("Database initialized");
+      resolve();
+    };
+
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      const objectStore = db.createObjectStore("sessions", {
+        keyPath: "id",
+        autoIncrement: true,
+      });
+      objectStore.createIndex("date", "date", { unique: false });
+      objectStore.createIndex("type", "type", { unique: false });
+      objectStore.createIndex("duration", "duration", { unique: false });
+    };
+  });
+}
+
 
         init();
       });
