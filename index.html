@@ -605,7 +605,7 @@ function updateProgressBarVisibility() {
             });
         }
 
-       function aggregateData(data, period) {
+  function aggregateData(data, period) {
             const aggregated = {};
             const now = new Date();
             const today = new Date(
@@ -621,35 +621,36 @@ function updateProgressBarVisibility() {
 
                 switch (period) {
                     case "day":
-                        if (date.toDateString() === today.toDateString()) { // 今日のデータのみ
+                        // 今日のデータのみを時間単位で集計
+                        if (date.toDateString() === today.toDateString()) {
                             key = date.getHours() + "時";
                             include = true;
                         }
                         break;
                     case "week":
-                        // 各セッションの日付が属する「週」のキーを生成
-                        // ISO週番号（月曜日開始）を使用することが多いですが、ここでは簡単のため年の開始からの週数とします
-                        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-                        const days = Math.floor((date - firstDayOfYear) / (24 * 60 * 60 * 1000));
-                        // 年の最初の週を0または1から始めるかによって調整
-                        // ここでは、単純に年の初めからの日数を7で割って週番号とします
-                        const weekNumber = Math.ceil(days / 7);
+                        // 現在の週のデータのみを曜日単位で集計
+                        // 週の開始日（日曜日）を計算
+                        const weekStart = new Date(today);
+                        weekStart.setDate(today.getDate() - today.getDay());
+                        // 週の終了日（土曜日）を計算
+                        const weekEnd = new Date(weekStart);
+                        weekEnd.setDate(weekStart.getDate() + 6);
 
-                        key = `${date.getFullYear()}年 第${weekNumber}週`;
-                        include = true; // すべての期間の週データを集計対象とする
+                        // セッションの日付が現在の週の範囲内にあるかチェック
+                        if (date >= weekStart && date <= weekEnd) {
+                            key = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+                            include = true;
+                        }
                         break;
                     case "month":
-                        if (date.getFullYear() === now.getFullYear() &&
-                            date.getMonth() === now.getMonth()) {
-                            key = date.getDate() + "日";
-                            include = true;
-                        }
+                        // 全期間のデータを月単位で集計
+                        key = date.getFullYear() + "年" + (date.getMonth() + 1) + "月";
+                        include = true; // すべての月のデータを集計対象とする
                         break;
                     case "year":
-                        if (date.getFullYear() === now.getFullYear()) {
-                            key = date.getMonth() + 1 + "月";
-                            include = true;
-                        }
+                        // 全期間のデータを年単位で集計
+                        key = date.getFullYear() + "年";
+                        include = true; // すべての年のデータを集計対象とする
                         break;
                 }
 
@@ -659,26 +660,32 @@ function updateProgressBarVisibility() {
                 }
             });
 
-            // 週表示の場合、キー（例: "2023年 第XX週"）でソートする
-            const labels = Object.keys(aggregated).sort((a, b) => {
-                if (period === "week") {
-                    const [yearA, weekA] = a.match(/(\d+)年 第(\d+)週/).slice(1).map(Number);
-                    const [yearB, weekB] = b.match(/(\d+)年 第(\d+)週/).slice(1).map(Number);
+            // ラベルのソートロジック
+            let labels = Object.keys(aggregated);
+
+            if (period === "day") {
+                // 時間順にソート (0時, 1時, ..., 23時)
+                labels.sort((a, b) => parseInt(a) - parseInt(b));
+            } else if (period === "week") {
+                // 曜日の順序でソート
+                const dayOrder = { "日": 0, "月": 1, "火": 2, "水": 3, "木": 4, "金": 5, "土": 6 };
+                labels.sort((a, b) => dayOrder[a] - dayOrder[b]);
+            } else if (period === "month") {
+                // 年と月でソート (例: "2023年1月", "2023年2月", ..., "2024年1月")
+                labels.sort((a, b) => {
+                    const [yearA, monthA] = a.match(/(\d+)年(\d+)月/).slice(1).map(Number);
+                    const [yearB, monthB] = b.match(/(\d+)年(\d+)月/).slice(1).map(Number);
                     if (yearA !== yearB) return yearA - yearB;
-                    return weekA - weekB;
-                }
-                // 他の期間のソートロジックはそのまま
-                return 0; // またはデフォルトのソート
-            });
+                    return monthA - monthB;
+                });
+            } else if (period === "year") {
+                // 年順にソート
+                labels.sort((a, b) => parseInt(a) - parseInt(b));
+            }
 
             const values = labels.map(label => aggregated[label]);
 
             const result = { labels: labels };
-            // session.type を見て workValues または breakValues を設定する既存のロジックは保持
-            // ただし、このaggregateDataはwork/breakで別々に呼ばれることを想定しているので、
-            // その呼び出し元が正しくフィルタリングしていれば、以下の分岐は簡略化できます。
-            // Chart.js の更新でデータセットの `data` を直接設定するのであれば、
-            // workAggregated, breakAggregated の `values` をそのまま使えばよい。
             if (data.length > 0 && data[0].type === "work") {
                 result.workValues = values;
             } else if (data.length > 0 && data[0].type === "break") {
@@ -686,7 +693,6 @@ function updateProgressBarVisibility() {
             }
             return result;
         }
-
         async function updateCharts(period) {
             const sessions = await getSessions();
             const workSessions = sessions.filter(s => s.type === 'work');
