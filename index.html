@@ -1,958 +1,1136 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ポモドーロタイマー</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Google Fonts & Material Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+      rel="stylesheet"
+    />
+
+    <!-- Chart.js for stats -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
     <style>
-        /* CSS variables for theme settings */
-        :root {
-            --accent-color: #007AFF; /* Default accent color */
-            --bg-color: #f0f2f5;
-            --text-color: #1c1c1e;
-            --card-bg-color: #ffffff;
-            --button-bg-color: #e5e5e7;
-            --button-text-color: #1c1c1e;
-            --border-color: #d1d1d6;
-        }
+      :root {
+          --accent-color: #741111;
+          /* Default accent color (amber-500) */
+      }
 
-        body.dark-mode {
-            --bg-color: #121212; /* Dark mode background color */
-            --text-color: #ffffff;
-            --card-bg-color: #1e1e1e;
-            --button-bg-color: #3a3a3c;
-            --button-text-color: #ffffff;
-            --border-color: #3a3a3c;
-        }
+      body {
+          font-family: 'Inter', 'Noto Sans JP', sans-serif;
+          transition: background-color 0.3s, color 0.3s;
+      }
 
-        /* Basic styles */
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
-        }
+      .accent-bg {
+          background-color: var(--accent-color);
+      }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: background-color 0.3s, color 0.3s;
-            overflow: hidden; /* Hide scrollbar */
-            -webkit-font-smoothing: antialiased; /* Smooth fonts */
-        }
+      .accent-text {
+          color: var(--accent-color);
+      }
 
-        #app-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
+      .accent-border {
+          border-color: var(--accent-color);
+      }
 
-        /* Screen container */
-        .screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            padding: 20px;
-            position: absolute;
-            top: 0;
-            left: 0;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            gap: 20px; /* Spacing between elements */
-        }
+      .material-icons-outlined {
+          font-size: inherit;
+      }
 
-        .screen.active {
-            display: flex;
-            opacity: 1;
-        }
-        
-        /* Generic header */
-        .header {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 56px; /* Material Design standard header height */
-        }
-        
-        .icon-btn {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            cursor: pointer;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-        }
-        .icon-btn:hover {
-            background-color: rgba(0,0,0,0.05);
-        }
-        body.dark-mode .icon-btn:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
-        .icon-btn .material-symbols-outlined {
-            font-size: 28px;
-            vertical-align: middle;
-        }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
 
-        /* Main screen */
-        #main-screen .header {
-            justify-content: flex-end; /* Align settings button to the right */
-        }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;
+          /* IE and Edge */
+          scrollbar-width: none;
+          /* Firefox */
+      }
 
-        #clock-display {
-            text-align: center;
-        }
+      /* Custom styles for circular progress */
+      .progress-ring-circle {
+          transition: stroke-dashoffset 0.35s;
+          transform: rotate(-90deg);
+          transform-origin: 50% 50%;
+      }
 
-        #digital-clock {
-            font-size: clamp(3.5rem, 20vw, 5rem); /* Adjust based on screen size */
-            font-weight: 700;
-            color: var(--accent-color);
-            letter-spacing: 2px;
-        }
-        
-        #analog-clock {
-            display: none; /* Toggled by JS */
-            width: 200px;
-            height: 200px;
-            border: 4px solid var(--accent-color);
-            border-radius: 50%;
-            position: relative;
-        }
-        #analog-clock .hand {
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            transform-origin: bottom;
-            background-color: var(--text-color);
-            border-radius: 2px;
-        }
-        #hour-hand { width: 4px; height: 50px; }
-        #minute-hand { width: 3px; height: 70px; }
-        #second-hand { width: 2px; height: 80px; background-color: var(--accent-color); }
-        
-        .main-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            width: 90%;
-            max-width: 320px;
-        }
-        
-        .main-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px 20px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border: 1px solid var(--border-color);
-            border-radius: 28px; /* Stronger rounded corners for modern look */
-            background-color: var(--card-bg-color);
-            color: var(--text-color);
-            cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: background-color 0.2s, box-shadow 0.2s;
-        }
-        .main-btn:active {
-            background-color: var(--button-bg-color);
-        }
-        .main-btn .material-symbols-outlined {
-            margin-right: 15px;
-            color: var(--accent-color);
-            font-size: 24px;
-        }
+      /* Custom modal styles */
+      .modal-backdrop {
+          transition: opacity 0.3s ease-in-out;
+      }
 
-        /* Settings modal */
-        #settings-modal, #confirm-dialog {
-            display: none; /* Toggled by JS */
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal-content {
-            background-color: var(--card-bg-color);
-            padding: 24px;
-            border-radius: 28px; /* Android 12+ style rounded corners */
-            width: 100%;
-            max-width: 400px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .modal-header h2 { margin: 0; font-size: 1.4rem; }
-        
-        .setting-item {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        .setting-item label {
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: var(--text-color);
-            opacity: 0.9;
-        }
-        .setting-item input[type="number"],
-        .setting-item input[type="file"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-size: 1rem;
-        }
-        .setting-item input[type="color"] {
-            width: 100%;
-            height: 48px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 0;
-            cursor: pointer;
-        }
-        .radio-group, .checkbox-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 0;
-        }
-
-        /* Timer screen */
-        #timer-display {
-            font-size: clamp(5rem, 25vw, 7rem);
-            font-weight: 700;
-            color: var(--accent-color);
-        }
-
-        .progress-bar {
-            width: 80%;
-            max-width: 300px;
-            height: 10px;
-            background-color: var(--button-bg-color);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        #progress-bar-inner {
-            width: 100%;
-            height: 100%;
-            background-color: var(--accent-color);
-            transition: width 0.5s linear;
-        }
-        
-        /* FAB (Floating Action Button) style */
-        #play-pause-btn {
-            width: 72px;
-            height: 72px;
-            border-radius: 24px; /* Squircle shape */
-            border: none;
-            background-color: var(--accent-color);
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        #play-pause-btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        #play-pause-btn .material-symbols-outlined {
-            font-size: 44px;
-            vertical-align: middle;
-        }
-
-        /* Records screen */
-        #chart-container {
-            width: 100%;
-            max-width: 600px;
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-        }
-        .time-range-selector {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .time-range-selector button {
-            padding: 8px 16px;
-            border: 1px solid var(--border-color);
-            background-color: transparent;
-            color: var(--text-color);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .time-range-selector button.active {
-            background-color: var(--accent-color);
-            color: white;
-            border-color: var(--accent-color);
-        }
-
-        /* Confirmation dialog */
-        #confirm-dialog .dialog-body {
-            margin-bottom: 24px;
-        }
-        .dialog-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-        .dialog-actions button {
-            background: none;
-            border: none;
-            padding: 10px 12px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        #confirm-ok {
-            color: var(--accent-color);
-        }
-        #confirm-cancel {
-            color: var(--text-color);
-            opacity: 0.8;
-        }
-        #confirm-ok:hover, #confirm-cancel:hover {
-            background-color: rgba(0,0,0,0.05);
-        }
-        body.dark-mode #confirm-ok:hover, body.dark-mode #confirm-cancel:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
-
+      /* Sync accent color for form elements */
+      input[type="checkbox"] {
+          accent-color: var(--accent-color);
+      }
     </style>
-</head>
-<body>
-    <div id="app-container">
-        <main id="main-screen" class="screen active">
-            <header class="header">
-                <button id="open-settings-btn" class="icon-btn" aria-label="設定">
-                    <span class="material-symbols-outlined">settings</span>
-                </button>
-            </header>
-            
-            <div id="clock-display">
-                <div id="digital-clock">00:00:00</div>
-                <div id="analog-clock">
-                    <div id="hour-hand" class="hand"></div>
-                    <div id="minute-hand" class="hand"></div>
-                    <div id="second-hand" class="hand"></div>
-                </div>
-            </div>
+  </head>
 
-            <div class="main-buttons">
-                <button id="start-focus-btn" class="main-btn">
-                    <span class="material-symbols-outlined">self_improvement</span>
-                    集中する
-                </button>
-            </div>
-        </main>
+  <body
+    class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-auto"
+  >
+    <div id="app-container" class="h-screen w-screen flex flex-col">
+      <!-- Home Screen -->
+      <main
+        id="home-screen"
+        class="flex-grow flex flex-col items-center justify-center text-center p-8"
+      >
+        <div
+          id="home-clock-digital"
+          class="text-7xl md:text-9xl font-bold mb-4"
+        >
+          12:00:00
+        </div>
+        <div id="home-clock-analog" class="relative w-64 h-64 mb-4 hidden">
+          <div
+            class="absolute inset-0 bg-white dark:bg-gray-800 rounded-full shadow-lg"
+          ></div>
+          <!-- Analog clock hands corrected -->
+          <div
+            id="analog-hour"
+            class="absolute bottom-1/2 left-1/2 w-1.5 h-16 bg-gray-800 dark:bg-gray-200 rounded-full"
+            style="transform-origin: bottom; transform: translateX(-50%) rotate(0deg);"
+          ></div>
+          <div
+            id="analog-minute"
+            class="absolute bottom-1/2 left-1/2 w-1 h-24 bg-gray-800 dark:bg-gray-200 rounded-full"
+            style="transform-origin: bottom; transform: translateX(-50%) rotate(0deg);"
+          ></div>
+          <div
+            id="analog-second"
+            class="absolute bottom-1/2 left-1/2 w-0.5 h-28 accent-bg"
+            style="transform-origin: bottom; transform: translateX(-50%) rotate(0deg);"
+          ></div>
+          <div
+            class="absolute top-1/2 left-1/2 w-3 h-3 accent-bg rounded-full -translate-x-1/2 -translate-y-1/2 z-10"
+          ></div>
+        </div>
+        <div class="flex space-x-8 mt-4">
+          <button
+            id="start-timer-btn"
+            class="p-4 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-transform transform hover:scale-110"
+          >
+            <span class="material-icons-outlined text-4xl accent-text"
+              >play_arrow</span
+            >
+          </button>
+          <button
+            id="show-stats-btn"
+            class="p-4 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-transform transform hover:scale-110"
+          >
+            <span class="material-icons-outlined text-4xl">bar_chart</span>
+          </button>
+          <button
+            id="show-settings-btn"
+            class="p-4 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-transform transform hover:scale-110"
+          >
+            <span class="material-icons-outlined text-4xl">settings</span>
+          </button>
+        </div>
+      </main>
 
-        <section id="timer-screen" class="screen">
-            <header class="header" style="justify-content: flex-start;">
-                <button id="timer-back-btn" class="icon-btn" aria-label="戻る">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                </button>
-            </header>
-
-            <div id="timer-display">25:00</div>
-            <div class="progress-bar">
-                <div id="progress-bar-inner"></div>
+      <!-- Timer Screen -->
+      <div
+        id="timer-screen"
+        class="hidden h-full flex-grow flex flex-col p-4 md:p-8"
+      >
+        <header class="flex items-center justify-between mb-4">
+          <button
+            id="back-from-timer-btn"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <span class="material-icons-outlined text-3xl">arrow_back</span>
+          </button>
+          <div id="timer-screen-clock" class="text-lg font-medium">12:00</div>
+        </header>
+        <div
+          class="flex-grow flex flex-col items-center justify-center relative"
+        >
+          <!-- Added 'relative' -->
+          <!-- Timer Display (now independent) -->
+          <div
+            id="timer-display"
+            class="absolute left-1/2 top-1/3 transform -translate-x-1/2 -translate-y-1/2 text-6xl md:text-7xl font-bold z-10"
+          >
+            25:00
+          </div>
+          <!-- Circular Progress Bar -->
+          <div
+            id="circular-progress-container"
+            class="relative w-64 h-64 md:w-80 md:h-80"
+          >
+            <svg class="w-full h-full" viewBox="0 0 100 100">
+              <circle
+                class="text-gray-200 dark:text-gray-700"
+                stroke-width="8"
+                stroke="currentColor"
+                fill="transparent"
+                r="45"
+                cx="50"
+                cy="50"
+              />
+              <circle
+                id="circular-progress-bar"
+                class="progress-ring-circle accent-text"
+                stroke-width="8"
+                stroke="currentColor"
+                fill="transparent"
+                r="45"
+                cx="50"
+                cy="50"
+              />
+            </svg>
+          </div>
+          <!-- Linear Progress Bar -->
+          <div
+            id="linear-progress-container"
+            class="w-full max-w-md mt-20 mb-8"
+          >
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-full">
+              <div
+                id="linear-progress-bar"
+                class="h-4 accent-bg rounded-full transition-all duration-300"
+                style="width: 100%;"
+              ></div>
             </div>
-            <button id="play-pause-btn" aria-label="再生">
-                <span id="play-pause-icon" class="material-symbols-outlined">play_arrow</span>
+          </div>
+
+          <div id="timer-status" class="text-xl mb-8 font-semibold">作業中</div>
+          <button
+            id="timer-control-btn"
+            class="p-5 rounded-full accent-bg text-white shadow-lg transform transition-transform hover:scale-110"
+          >
+            <span
+              id="timer-control-icon"
+              class="material-icons-outlined text-5xl"
+              >play_arrow</span
+            >
+          </button>
+        </div>
+      </div>
+      <!-- Stats Screen -->
+      <div
+        id="stats-screen"
+        class="hidden h-full flex-grow flex flex-col p-4 md:p-8"
+      >
+        <header class="flex items-center mb-4">
+          <button
+            id="back-from-stats-btn"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <span class="material-icons-outlined text-3xl">arrow_back</span>
+          </button>
+          <h1 class="text-2xl font-bold ml-4">記録</h1>
+        </header>
+        <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+          <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+            <button
+              data-period="day"
+              class="stats-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm accent-text accent-border"
+            >
+              日
             </button>
-        </section>
+            <button
+              data-period="week"
+              class="stats-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              週
+            </button>
+            <button
+              data-period="month"
+              class="stats-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              月
+            </button>
+            <button
+              data-period="year"
+              class="stats-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              年
+            </button>
+          </nav>
+        </div>
+        <div
+          id="stats-content"
+          class="flex-grow overflow-y-auto no-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <canvas id="work-chart"></canvas>
+          </div>
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <canvas id="break-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Screen -->
+      <div
+        id="settings-screen"
+        class="hidden h-full flex-grow flex flex-col p-4 md:p-8"
+      >
+        <header class="flex items-center mb-6">
+          <button
+            id="back-from-settings-btn"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <span class="material-icons-outlined text-3xl">arrow_back</span>
+          </button>
+          <h1 class="text-2xl font-bold ml-4">設定</h1>
+        </header>
+        <div class="flex-grow overflow-y-auto no-scrollbar space-y-8">
+          <!-- In-progress Settings -->
+          <section>
+            <h2
+              class="text-lg font-semibold border-b border-gray-300 dark:border-gray-600 pb-2 mb-4"
+            >
+              作業中の設定
+            </h2>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <label for="work-time" class="text-gray-700 dark:text-gray-300"
+                  >作業時間 (分)</label
+                >
+                <input
+                  type="number"
+                  id="work-time"
+                  min="1"
+                  class="w-24 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
+                />
+              </div>
+              <div class="flex items-center justify-between">
+                <label for="break-time" class="text-gray-700 dark:text-gray-300"
+                  >休憩時間 (分)</label
+                >
+                <input
+                  type="number"
+                  id="break-time"
+                  min="1"
+                  class="w-24 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
+                />
+              </div>
+              <div class="flex items-center justify-between">
+                <label
+                  for="show-progress-bar"
+                  class="text-gray-700 dark:text-gray-300"
+                  >プログレスバーを表示</label
+                >
+                <input
+                  type="checkbox"
+                  id="show-progress-bar"
+                  class="h-6 w-6 rounded focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-900 focus:ring-opacity-50"
+                />
+              </div>
+              <div
+                id="progress-bar-type-container"
+                class="flex items-center justify-between"
+              >
+                <label
+                  for="progress-bar-type"
+                  class="text-gray-700 dark:text-gray-300"
+                  >プログレスバーの種類</label
+                >
+                <select
+                  id="progress-bar-type"
+                  class="p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
+                >
+                  <option value="circular">円形</option>
+                  <option value="linear">直線</option>
+                </select>
+              </div>
+              <div class="flex items-center justify-between">
+                <label
+                  for="alarm-sound"
+                  class="text-gray-700 dark:text-gray-300"
+                  >アラーム音</label
+                >
+                <input
+                  type="file"
+                  id="alarm-sound"
+                  accept="audio/*"
+                  class="text-sm"
+                />
+              </div>
+              <button
+                id="reset-alarm-btn"
+                class="text-sm accent-text hover:underline"
+              >
+                デフォルトの音源に戻す
+              </button>
+            </div>
+          </section>
+          <!-- Home Screen Settings -->
+          <section>
+            <h2
+              class="text-lg font-semibold border-b border-gray-300 dark:border-gray-600 pb-2 mb-4"
+            >
+              ホーム画面の設定
+            </h2>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <label
+                  for="accent-color"
+                  class="text-gray-700 dark:text-gray-300"
+                  >アクセントカラー</label
+                >
+                <input
+                  type="color"
+                  id="accent-color"
+                  class="w-10 h-10 p-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
+                />
+              </div>
+              <div class="flex items-center justify-between">
+                <label
+                  for="clock-style"
+                  class="text-gray-700 dark:text-gray-300"
+                  >時計のスタイル</label
+                >
+                <select
+                  id="clock-style"
+                  class="p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
+                >
+                  <option value="digital">デジタル</option>
+                  <option value="analog">アナログ</option>
+                </select>
+              </div>
+              <div class="flex items-center justify-between">
+                <label
+                  for="show-timer-clock"
+                  class="text-gray-700 dark:text-gray-300"
+                  >作業中に時計を表示</label
+                >
+                <input
+                  type="checkbox"
+                  id="show-timer-clock"
+                  class="h-6 w-6 rounded focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-900 focus:ring-opacity-50"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
 
-    <div id="settings-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>設定</h2>
-                <button class="icon-btn" id="close-settings-btn" aria-label="閉じる">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            <form id="settings-form">
-                <div class="setting-item">
-                    <label for="setting-work-time">作業時間 (分)</label>
-                    <input type="number" id="setting-work-time" min="1">
-                </div>
-                <div class="setting-item">
-                    <label for="setting-break-time">休憩時間 (分)</label>
-                    <input type="number" id="setting-break-time" min="1">
-                </div>
-                <div class="setting-item">
-                    <label for="setting-accent-color">アクセントカラー</label>
-                    <input type="color" id="setting-accent-color">
-                </div>
-                <div class="setting-item">
-                    <div class="checkbox-group">
-                        <label for="setting-dark-mode">ダークモード</label>
-                        <input type="checkbox" id="setting-dark-mode">
-                    </div>
-                </div>
-                   <div class="setting-item">
-                    <label>時計の表示</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="clock-type" value="digital"> デジタル</label>
-                        <label><input type="radio" name="clock-type" value="analog"> アナログ</label>
-                    </div>
-                </div>
-                <div class="setting-item">
-                    <label for="setting-alarm-file">アラーム音</label>
-                    <input type="file" id="setting-alarm-file" accept="audio/*">
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div id="confirm-dialog">
-        <div class="modal-content">
-            <h3>お疲れ様です！</h3>
-            <p class="dialog-body">タイマーを終了して記録を保存しますか？</p>
-            <div class="dialog-actions">
-                <button id="confirm-cancel">キャンセル</button>
-                <button id="confirm-ok">保存して終了</button>
-            </div>
-        </div>
-    </div>
+    <!-- Alarm Sound -->
+    <audio
+      id="alarm-audio"
+      src="https://pipocorp-japan.github.io/Pomodoro/alarm.mp3"
+    ></audio>
 
+    <!-- Custom Modal Dialog -->
+    <div
+      id="confirm-modal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center p-4 z-50"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm"
+      >
+        <h3 id="modal-title" class="text-xl font-bold mb-2">お疲れ様です！</h3>
+        <p id="modal-content" class="text-gray-600 dark:text-gray-300 mb-6">
+          保存しますか？
+        </p>
+        <div class="flex justify-end space-x-4">
+          <button
+            id="modal-confirm-btn"
+            class="px-4 py-2 rounded-md accent-bg text-white font-semibold"
+          >
+            はい
+          </button>
+          <button
+            id="modal-cancel-btn"
+            class="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold"
+          >
+            いいえ
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('アプリケーションが初期化されています...');
+      document.addEventListener("DOMContentLoaded", () => {
+        // --- DOM Elements ---
+        const homeScreen = document.getElementById("home-screen");
+        const timerScreen = document.getElementById("timer-screen");
+        const statsScreen = document.getElementById("stats-screen");
+        const settingsScreen = document.getElementById("settings-screen");
+        const screens = [homeScreen, timerScreen, statsScreen, settingsScreen];
 
-            // --- DOM element retrieval ---
-            const mainScreen = document.getElementById('main-screen');
-            const timerScreen = document.getElementById('timer-screen');
-            const settingsModal = document.getElementById('settings-modal');
-            const confirmDialog = document.getElementById('confirm-dialog');
-            
-            const digitalClock = document.getElementById('digital-clock');
-            const analogClock = document.getElementById('analog-clock');
-            const hourHand = document.getElementById('hour-hand');
-            const minuteHand = document.getElementById('minute-hand');
-            const secondHand = document.getElementById('second-hand');
-            
-            const timerDisplay = document.getElementById('timer-display');
-            const progressBarInner = document.getElementById('progress-bar-inner');
-            const playPauseBtn = document.getElementById('play-pause-btn');
-            const playPauseIcon = document.getElementById('play-pause-icon');
-            
-            const recordsChartCanvas = document.getElementById('records-chart');
-            const timeRangeButtons = document.querySelectorAll('.time-range-selector button');
+        // Home
+        const homeClockDigital = document.getElementById("home-clock-digital");
+        const homeClockAnalog = document.getElementById("home-clock-analog");
+        const analogHour = document.getElementById("analog-hour");
+        const analogMinute = document.getElementById("analog-minute");
+        const analogSecond = document.getElementById("analog-second");
+        const startTimerBtn = document.getElementById("start-timer-btn");
+        const showStatsBtn = document.getElementById("show-stats-btn");
+        const showSettingsBtn = document.getElementById("show-settings-btn");
 
-            // --- Settings (JS object) ---
-            // Settings will always start with default values as saving is removed
-            let settings = {
-                workTime: 25,
-                breakTime: 5,
-                accentColor: '#007AFF',
-                isDarkMode: false,
-                clockType: 'digital',
-                alarmSoundUrl: 'https://pipocorp-japan.github.io/Pomodoro/alarm.mp3', // User-specified URL
-                alarmSound: null // Will be initialized later
-            };
+        // Timer
+        const backFromTimerBtn = document.getElementById("back-from-timer-btn");
+        const timerScreenClock = document.getElementById("timer-screen-clock");
+        const timerDisplay = document.getElementById("timer-display");
+        const timerStatus = document.getElementById("timer-status");
+        const timerControlBtn = document.getElementById("timer-control-btn");
+        const timerControlIcon = document.getElementById("timer-control-icon");
+        const circularProgressContainer = document.getElementById(
+          "circular-progress-container"
+        );
+        const circularProgressBar = document.getElementById(
+          "circular-progress-bar"
+        );
+        const linearProgressContainer = document.getElementById(
+          "linear-progress-container"
+        );
+        const linearProgressBar = document.getElementById(
+          "linear-progress-bar"
+        );
 
-            // --- Timer state variables ---
-            let timerWorker = null; // Web Worker
-            let timerState = 'stopped'; // 'running', 'paused', 'stopped'
-            let totalTime = 0; // Total time of the timer (seconds)
-            let currentRemainingTime = 0; // Current remaining time (seconds)
-            let hasTimerStartedOnce = false; // Has the timer started at least once?
-            let chartInstance = null; // Chart.js instance
-            // Records will always start as an empty array as saving is removed
-            let records = []; // Array to store focus time records (session-only)
+        // Stats
+        const backFromStatsBtn = document.getElementById("back-from-stats-btn");
+        const statsTabs = document.querySelectorAll(".stats-tab");
+        const workChartCanvas = document.getElementById("work-chart");
+        const breakChartCanvas = document.getElementById("break-chart");
 
-            // --- Initialization process ---
-            function init() {
-                // No need to load settings from localStorage
-                applySettings(); // Apply default settings
-                // No need to load records from localStorage
-                setupEventListeners();
-                updateMainClock();
-                setInterval(updateMainClock, 1000);
-                createTimerWorker();
-                // No need to save settings initially as saving is removed
+        // Settings
+        const backFromSettingsBtn = document.getElementById(
+          "back-from-settings-btn"
+        );
+        const workTimeInput = document.getElementById("work-time");
+        const breakTimeInput = document.getElementById("break-time");
+        const showProgressBarCheckbox =
+          document.getElementById("show-progress-bar");
+        const progressBarTypeContainer = document.getElementById(
+          "progress-bar-type-container"
+        );
+        const progressBarTypeSelect =
+          document.getElementById("progress-bar-type");
+        const alarmSoundInput = document.getElementById("alarm-sound");
+        const resetAlarmBtn = document.getElementById("reset-alarm-btn");
+        const accentColorInput = document.getElementById("accent-color");
+        const clockStyleSelect = document.getElementById("clock-style");
+        const showTimerClockCheckbox =
+          document.getElementById("show-timer-clock");
+
+        // Modal
+        const confirmModal = document.getElementById("confirm-modal");
+        const modalConfirmBtn = document.getElementById("modal-confirm-btn");
+        const modalCancelBtn = document.getElementById("modal-cancel-btn");
+
+        // Audio
+        const alarmAudio = document.getElementById("alarm-audio");
+        const DEFAULT_ALARM_SRC =
+          "https://pipocorp-japan.github.io/Pomodoro/alarm.mp3";
+
+        // --- State ---
+        let settings = {};
+        let timerInterval;
+        let timeLeft; // in seconds
+        let totalTime; // in seconds
+        let timerState = "stopped"; // stopped, running, paused, finished
+        let sessionType = "work"; // work, break
+        let sessionStarted = false; // To track if the timer has run at least once
+        let workChart, breakChart;
+        let db;
+
+        // --- IndexedDB ---
+        function initDB() {
+          const request = indexedDB.open("PomodoroDB", 1);
+
+          request.onerror = (event) => {
+            console.error("Database error: ", event.target.errorCode);
+          };
+
+          request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            const objectStore = db.createObjectStore("sessions", {
+              keyPath: "id",
+              autoIncrement: true,
+            });
+            objectStore.createIndex("date", "date", { unique: false });
+            objectStore.createIndex("type", "type", { unique: false });
+            objectStore.createIndex("duration", "duration", { unique: false });
+          };
+
+          request.onsuccess = (event) => {
+            db = event.target.result;
+            console.log("Database initialized");
+          };
+        }
+
+        function saveSession(type, duration) {
+          if (!db) return;
+          const transaction = db.transaction(["sessions"], "readwrite");
+          const objectStore = transaction.objectStore("sessions");
+          const sessionData = {
+            date: new Date(),
+            type: type,
+            duration: duration,
+          };
+          objectStore.add(sessionData);
+        }
+
+        async function getSessions() {
+          return new Promise((resolve, reject) => {
+            if (!db) {
+              resolve([]);
+              return;
             }
-            
-            // --- Create Web Worker ---
-            // Use Worker instead of setInterval for stable background operation
-            function createTimerWorker() {
-                const workerCode = `
-                    let timerId = null;
-                    let remainingTime = 0;
-                    let lastTick = 0;
-                    
-                    self.onmessage = function(e) {
-                        const { command, time } = e.data;
-                        if (command === 'start') {
-                            remainingTime = time;
-                            lastTick = Date.now();
-                            if (timerId) clearInterval(timerId);
-                            timerId = setInterval(() => {
-                                const now = Date.now();
-                                const elapsed = now - lastTick;
-                                lastTick = now;
-                                remainingTime -= elapsed / 1000;
-                                if (remainingTime <= 0) {
-                                    remainingTime = 0;
-                                    clearInterval(timerId);
-                                    timerId = null;
-                                    self.postMessage({ type: 'done' });
-                                }
-                                self.postMessage({ type: 'tick', remainingTime });
-                            }, 100); // Update every 100ms
-                        } else if (command === 'pause') {
-                            clearInterval(timerId);
-                            timerId = null;
-                        } else if (command === 'stop') {
-                             clearInterval(timerId);
-                             timerId = null;
-                             remainingTime = 0;
-                        }
-                    };
-                `;
-                const blob = new Blob([workerCode], { type: 'application/javascript' });
-                timerWorker = new Worker(URL.createObjectURL(blob));
+            const transaction = db.transaction(["sessions"], "readonly");
+            const objectStore = transaction.objectStore("sessions");
+            const request = objectStore.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (event) =>
+              reject("Error fetching sessions: " + event.target.errorCode);
+          });
+        }
 
-                timerWorker.onmessage = (e) => {
-                    const { type, remainingTime } = e.data;
-                    currentRemainingTime = remainingTime; // Update current remaining time
-                    if (type === 'tick') {
-                        updateTimerUI(remainingTime);
-                    } else if (type === 'done') {
-                        timerState = 'stopped';
-                        playPauseIcon.textContent = 'replay';
-                        try {
-                            // アラーム音が初期化されていることを確認してから再生を試みる
-                            if (settings.alarmSound) {
-                                settings.alarmSound.play(); // Play alarm sound
-                            } else {
-                                console.warn("アラーム音が初期化されていません。");
-                            }
-                        } catch (error) {
-                            console.error("アラーム音の再生に失敗しました:", error);
-                            // Optionally, play a fallback sound or show a message
-                        }
-                        // Save record upon completion, using actual elapsed time (session-only)
-                        saveRecord(settings.workTime - Math.floor(remainingTime / 60)); 
-                        // Show confirmation dialog when timer finishes
-                        document.getElementById('confirm-dialog').querySelector('h3').textContent = '集中時間終了！';
-                        document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = 'お疲れ様でした！記録を保存しますか？';
-                        confirmDialog.style.display = 'flex';
-                    }
-                };
+        // --- Navigation ---
+        function showScreen(screenId) {
+          screens.forEach((screen) => {
+            screen.classList.add("hidden");
+          });
+          document.getElementById(screenId).classList.remove("hidden");
+        }
+
+        // --- Settings ---
+        function loadSettings() {
+          const savedSettings =
+            JSON.parse(localStorage.getItem("pomodoroSettings")) || {};
+          const systemPrefersDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+          settings = {
+            workTime: savedSettings.workTime || 25,
+            breakTime: savedSettings.breakTime || 5,
+            showProgressBar: savedSettings.showProgressBar !== false, // default true
+            progressBarType: savedSettings.progressBarType || "circular",
+            accentColor: savedSettings.accentColor || "#741111",
+            clockStyle: savedSettings.clockStyle || "digital",
+            darkMode:
+              savedSettings.darkMode === undefined
+                ? systemPrefersDark
+                : savedSettings.darkMode,
+            showTimerClock: savedSettings.showTimerClock !== false, // default true
+            alarmSound: savedSettings.alarmSound || DEFAULT_ALARM_SRC,
+          };
+          applySettings();
+        }
+
+        function saveSettings() {
+          localStorage.setItem("pomodoroSettings", JSON.stringify(settings));
+        }
+
+        function applySettings() {
+          // Update inputs
+          workTimeInput.value = settings.workTime;
+          breakTimeInput.value = settings.breakTime;
+          showProgressBarCheckbox.checked = settings.showProgressBar;
+          progressBarTypeSelect.value = settings.progressBarType;
+          accentColorInput.value = settings.accentColor;
+          clockStyleSelect.value = settings.clockStyle;
+          showTimerClockCheckbox.checked = settings.showTimerClock;
+
+          // Apply theme
+          document.documentElement.style.setProperty(
+            "--accent-color",
+            settings.accentColor
+          );
+          if (settings.darkMode) {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+
+          // Apply home clock style
+          homeClockDigital.classList.toggle(
+            "hidden",
+            settings.clockStyle !== "digital"
+          );
+          homeClockAnalog.classList.toggle(
+            "hidden",
+            settings.clockStyle !== "analog"
+          );
+
+          // Apply timer screen clock visibility
+          timerScreenClock.style.visibility = settings.showTimerClock
+            ? "visible"
+            : "hidden";
+
+          // Apply progress bar visibility and type
+          progressBarTypeContainer.style.display = settings.showProgressBar
+            ? "flex"
+            : "none";
+          updateProgressBarVisibility();
+
+          // Apply alarm sound
+          alarmAudio.src = settings.alarmSound;
+        }
+
+        function updateProgressBarVisibility() {
+          const isVisible = settings.showProgressBar;
+          const isCircular = settings.progressBarType === "circular";
+
+          circularProgressContainer.classList.toggle(
+            "hidden",
+            !isVisible || !isCircular
+          );
+
+          // linearバーにフェード的な切り替え
+          if (!isVisible || isCircular) {
+            linearProgressContainer.classList.add("invisible", "h-0");
+          } else {
+            linearProgressContainer.classList.remove("invisible", "h-0");
+          }
+        }
+
+        // --- Clock ---
+        function updateClocks() {
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, "0");
+          const minutes = String(now.getMinutes()).padStart(2, "0");
+          const seconds = String(now.getSeconds()).padStart(2, "0");
+
+          // Digital
+          homeClockDigital.textContent = `${hours}:${minutes}:${seconds}`;
+          timerScreenClock.textContent = `${hours}:${minutes}`;
+
+          // Analog
+          const secondsRatio = now.getSeconds() / 60;
+          const minutesRatio = (secondsRatio + now.getMinutes()) / 60;
+          const hoursRatio = (minutesRatio + now.getHours()) / 12;
+
+          // Corrected transform for analog hands
+          analogSecond.style.transform = `translateX(-50%) rotate(${
+            secondsRatio * 360
+          }deg)`;
+          analogMinute.style.transform = `translateX(-50%) rotate(${
+            minutesRatio * 360
+          }deg)`;
+          analogHour.style.transform = `translateX(-50%) rotate(${
+            hoursRatio * 360
+          }deg)`;
+        }
+
+        // --- Timer Logic ---
+        const radius = circularProgressBar.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        circularProgressBar.style.strokeDasharray = `${circumference} ${circumference}`;
+        circularProgressBar.style.strokeDashoffset = circumference;
+
+        function stopAlarm() {
+          alarmAudio.pause();
+          alarmAudio.currentTime = 0;
+        }
+
+        function updateTimerDisplay() {
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          timerDisplay.textContent = `${String(minutes).padStart(
+            2,
+            "0"
+          )}:${String(seconds).padStart(2, "0")}`;
+
+          const progress = (totalTime - timeLeft) / totalTime;
+          // Circular
+          const offset = circumference - progress * circumference;
+          circularProgressBar.style.strokeDashoffset = offset;
+          // Linear
+          linearProgressBar.style.width = `${progress * 100}%`;
+        }
+
+        function startTimer() {
+          if (timerState === "finished") {
+            switchSession();
+            return;
+          }
+
+          timerState = "running";
+          sessionStarted = true;
+          timerControlIcon.textContent = "pause";
+          timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+              clearInterval(timerInterval);
+              timerState = "finished";
+              timerControlIcon.textContent = "replay";
+              timerStatus.textContent =
+                sessionType === "work" ? "作業完了！" : "休憩完了！";
+              alarmAudio.play();
+              saveSession(sessionType, totalTime / 60);
             }
+          }, 1000);
+        }
 
-            // --- Event listener setup ---
-            function setupEventListeners() {
-                // Screen transitions
-                document.getElementById('open-settings-btn').addEventListener('click', () => settingsModal.style.display = 'flex');
-                document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
-                
-                document.getElementById('start-focus-btn').addEventListener('click', () => {
-                    resetTimer(settings.workTime * 60);
-                    switchScreen('timer-screen');
-                });
-                
-                document.getElementById('view-records-btn').addEventListener('click', () => {
-                    switchScreen('records-screen');
-                    renderChart();
-                });
+        function pauseTimer() {
+          clearInterval(timerInterval);
+          timerState = "paused";
+          timerControlIcon.textContent = "play_arrow";
+        }
 
-                document.querySelectorAll('.back-to-main-btn').forEach(btn => {
-                    btn.addEventListener('click', () => switchScreen('main-screen'));
-                });
+        function resetTimer(type) {
+          clearInterval(timerInterval);
+          stopAlarm(); // Stop alarm on any reset
+          sessionType = type;
+          totalTime =
+            (sessionType === "work" ? settings.workTime : settings.breakTime) *
+            60;
+          timeLeft = totalTime;
+          timerState = "stopped";
+          sessionStarted = false;
+          timerStatus.textContent =
+            sessionType === "work" ? "作業中" : "休憩中";
+          timerControlIcon.textContent = "play_arrow";
+          updateTimerDisplay();
+        }
 
-                // Timer screen back button
-                document.getElementById('timer-back-btn').addEventListener('click', () => {
-                    if (hasTimerStartedOnce && timerState !== 'stopped') {
-                        // If timer has started and not yet finished
-                        document.getElementById('confirm-dialog').querySelector('h3').textContent = 'タイマーを終了しますか？';
-                        document.getElementById('confirm-dialog').querySelector('.dialog-body').textContent = '現在のセッションを破棄してメイン画面に戻りますか？';
-                        confirmDialog.style.display = 'flex';
-                        // In this case, "Save and Exit" behavior changes to "Discard and Return"
-                        document.getElementById('confirm-ok').textContent = '破棄して戻る';
-                        document.getElementById('confirm-ok').onclick = () => {
-                            stopTimer(); // Stop timer, do not save record
-                            confirmDialog.style.display = 'none';
-                            switchScreen('main-screen');
-                            // Restore button text and event listener for future use
-                            document.getElementById('confirm-ok').textContent = '保存して終了';
-                            document.getElementById('confirm-ok').onclick = () => {
-                                stopTimer();
-                                saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); // Save elapsed time
-                                confirmDialog.style.display = 'none';
-                                switchScreen('main-screen');
-                            };
-                        };
-                    } else {
-                        switchScreen('main-screen');
-                    }
-                });
+        function switchSession() {
+          const nextSession = sessionType === "work" ? "break" : "work";
+          resetTimer(nextSession);
+          startTimer();
+        }
 
-                // Confirmation dialog
-                document.getElementById('confirm-cancel').addEventListener('click', () => confirmDialog.style.display = 'none');
-                // Initial "Save and Exit" button event listener
-                document.getElementById('confirm-ok').addEventListener('click', () => {
-                    stopTimer(); // Stop timer
-                    // Save elapsed time (session-only)
-                    saveRecord(settings.workTime - Math.floor(currentRemainingTime / 60)); 
-                    console.log('記録を保存しました (セッション限り)');
-                    confirmDialog.style.display = 'none';
-                    switchScreen('main-screen');
-                });
+        // --- Modal Logic ---
+        let modalResolve;
+        function showConfirmModal() {
+          return new Promise((resolve) => {
+            modalResolve = resolve;
+            confirmModal.classList.remove("hidden");
+            confirmModal.classList.add("opacity-100");
+          });
+        }
 
+        function hideConfirmModal() {
+          confirmModal.classList.add("opacity-0");
+          setTimeout(() => {
+            confirmModal.classList.add("hidden");
+            confirmModal.classList.remove("opacity-0");
+          }, 300);
+        }
 
-                // Timer operations
-                playPauseBtn.addEventListener('click', toggleTimer);
+        // --- Stats Logic ---
+        function createChart(canvas, label) {
+          const ctx = canvas.getContext("2d");
+          return new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: [],
+              datasets: [
+                {
+                  label: label,
+                  data: [],
+                  backgroundColor: getComputedStyle(
+                    document.body
+                  ).getPropertyValue("--accent-color"),
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: "時間 (分)",
+                  },
+                },
+              },
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                title: {
+                  display: true,
+                  text: label,
+                  font: {
+                    size: 16,
+                  },
+                },
+              },
+            },
+          });
+        }
 
-                // Settings changes (affect current session only)
-                document.getElementById('setting-work-time').addEventListener('change', e => { settings.workTime = parseInt(e.target.value); applySettings(); }); // Apply directly
-                document.getElementById('setting-break-time').addEventListener('change', e => { settings.breakTime = parseInt(e.target.value); applySettings(); }); // Apply directly
-                document.getElementById('setting-accent-color').addEventListener('input', e => { settings.accentColor = e.target.value; applyAccentColor(); }); // Apply directly
-                document.getElementById('setting-accent-color').addEventListener('change', applySettings); // Apply directly
-                document.getElementById('setting-dark-mode').addEventListener('change', e => { settings.isDarkMode = e.target.checked; applyDarkMode(); }); // Apply directly
-                document.querySelectorAll('input[name="clock-type"]').forEach(radio => {
-                    radio.addEventListener('change', e => { settings.clockType = e.target.value; applyClockType(); }); // Apply directly
-                });
-                document.getElementById('setting-alarm-file').addEventListener('change', e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const url = URL.createObjectURL(file);
-                        settings.alarmSound = new Audio(url); // Create Audio object from temporary URL
-                        settings.alarmSoundUrl = url; // Store the temporary URL (will not persist across sessions)
-                        console.warn("カスタムアラーム音はブラウザセッション中のみ有効です。ページを閉じるとリセットされます。");
-                    }
-                });
+        function aggregateData(data, period) {
+          const aggregated = {};
+          const now = new Date();
+          const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+          );
 
-                // Records screen time range buttons
-                timeRangeButtons.forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        timeRangeButtons.forEach(btn => btn.classList.remove('active'));
-                        e.target.classList.add('active');
-                        renderChart();
-                    });
-                });
-            }
+          data.forEach((session) => {
+            const date = new Date(session.date);
+            let key;
+            let include = false;
 
-            // --- Apply settings (no saving) ---
-            function applySettings() {
-                applyAccentColor();
-                applyDarkMode();
-                applyClockType();
-                // Reflect values in settings UI
-                document.getElementById('setting-work-time').value = settings.workTime;
-                document.getElementById('setting-break-time').value = settings.breakTime;
-                document.getElementById('setting-accent-color').value = settings.accentColor;
-                document.getElementById('setting-dark-mode').checked = settings.isDarkMode;
-                document.querySelector(`input[name="clock-type"][value="${settings.clockType}"]`).checked = true;
-
-                // Initialize Audio object from stored URL
-                if (typeof settings.alarmSoundUrl === 'string' && settings.alarmSoundUrl) {
-                    settings.alarmSound = new Audio(settings.alarmSoundUrl);
-                    console.log('Alarm sound initialized with URL:', settings.alarmSoundUrl);
-                } else {
-                    // Fallback to default if URL is not valid or not set
-                    settings.alarmSound = new Audio('https://www.soundjay.com/buttons/beep-07a.mp3');
-                    settings.alarmSoundUrl = 'https://www.soundjay.com/buttons/beep-07a.mp3';
-                    console.warn('Alarm sound URL not found or invalid, falling back to default.');
+            switch (period) {
+              case "day":
+                if (date >= today) {
+                  key = date.getHours() + "時";
+                  include = true;
                 }
-            }
-
-            function applyAccentColor() {
-                document.documentElement.style.setProperty('--accent-color', settings.accentColor);
-            }
-
-            function applyDarkMode() {
-                document.body.classList.toggle('dark-mode', settings.isDarkMode);
-            }
-
-            function applyClockType() {
-                digitalClock.style.display = settings.clockType === 'digital' ? 'block' : 'none';
-                analogClock.style.display = settings.clockType === 'analog' ? 'block' : 'none';
-            }
-            
-            // saveSettings function removed - settings are not persisted
-            // function saveSettings() { ... }
-
-            // loadSettings function simplified - settings are not loaded from persistence
-            function loadSettings() {
-                // Settings are now always initialized to default values in the `settings` object.
-                // No need to load from localStorage.
-                console.log('保存機能が削除されたため、設定はデフォルト値で初期化されます。');
-            }
-            
-            // --- Screen switching ---
-            function switchScreen(screenId) {
-                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-                document.getElementById(screenId).classList.add('active');
-            }
-            
-            // --- Update main clock ---
-            function updateMainClock() {
-                const now = new Date();
-                const h = now.getHours();
-                const m = now.getMinutes();
-                const s = now.getSeconds();
-
-                // Digital
-                digitalClock.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                
-                // Analog
-                const hDeg = (h % 12) * 30 + m * 0.5;
-                const mDeg = m * 6 + s * 0.1;
-                const sDeg = s * 6;
-                hourHand.style.transform = `translateX(-50%) rotate(${hDeg}deg)`;
-                minuteHand.style.transform = `translateX(-50%) rotate(${mDeg}deg)`;
-                secondHand.style.transform = `translateX(-50%) rotate(${sDeg}deg)`;
-            }
-
-            // --- Timer logic ---
-            function toggleTimer() {
-                if (timerState === 'running') {
-                    pauseTimer();
-                } else {
-                    startTimer();
+                break;
+              case "week":
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay());
+                if (date >= weekStart) {
+                  key = ["日", "月", "火", "水", "木", "金", "土"][
+                    date.getDay()
+                  ];
+                  include = true;
                 }
-            }
-
-            function startTimer() {
-                hasTimerStartedOnce = true;
-                timerState = 'running';
-                playPauseIcon.textContent = 'pause';
-                timerWorker.postMessage({ command: 'start', time: currentRemainingTime > 0 ? currentRemainingTime : totalTime });
-            }
-
-            function pauseTimer() {
-                timerState = 'paused';
-                playPauseIcon.textContent = 'play_arrow';
-                timerWorker.postMessage({ command: 'pause' });
-            }
-
-            function stopTimer() {
-                timerState = 'stopped';
-                playPauseIcon.textContent = 'replay';
-                timerWorker.postMessage({ command: 'stop' });
-                resetTimer(settings.workTime * 60); // Reset timer to initial state
-                hasTimerStartedOnce = false; // Reset timer started state
-            }
-
-            function resetTimer(timeInSeconds) {
-                totalTime = timeInSeconds;
-                currentRemainingTime = timeInSeconds;
-                updateTimerUI(timeInSeconds);
-                progressBarInner.style.width = '100%';
-                timerState = 'stopped';
-                playPauseIcon.textContent = 'play_arrow';
-                hasTimerStartedOnce = false;
-            }
-
-            function updateTimerUI(remainingTime) {
-                const minutes = Math.floor(remainingTime / 60);
-                const seconds = Math.floor(remainingTime % 60);
-                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                
-                const progressPercentage = (remainingTime / totalTime) * 100;
-                progressBarInner.style.width = `${progressPercentage}%`;
-            }
-
-            // --- Save and load records --- (Removed persistence)
-            function saveRecord(durationMinutes) {
-                const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
-                records.push({ date: today, duration: durationMinutes });
-                renderChart(); // Redraw chart when records are updated (session-only)
-            }
-
-            function loadRecords() {
-                // Records are now always initialized as an empty array.
-                // No need to load from localStorage.
-                records = []; // Ensure it's empty on load
-                console.log('保存機能が削除されたため、記録はセッション限りです。');
-            }
-
-            // --- Render records chart ---
-            function renderChart() {
-                if (chartInstance) {
-                    chartInstance.destroy(); // Destroy existing chart if any
+                break;
+              case "month":
+                if (
+                  date.getFullYear() === now.getFullYear() &&
+                  date.getMonth() === now.getMonth()
+                ) {
+                  key = date.getDate() + "日";
+                  include = true;
                 }
-
-                const activeRange = document.querySelector('.time-range-selector button.active').dataset.range;
-                let filteredRecords = [];
-                let labels = [];
-                let data = [];
-
-                const now = new Date();
-
-                // Get computed text color for chart ticks
-                const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
-
-                // Aggregate data based on selected period
-                switch (activeRange) {
-                    case 'day':
-                        // Only today's records
-                        const todayStr = now.toISOString().slice(0, 10);
-                        filteredRecords = records.filter(record => record.date === todayStr);
-                        labels = ['今日'];
-                        data = [filteredRecords.reduce((sum, record) => sum + record.duration, 0)];
-                        break;
-                    case 'week':
-                        // Records for the past 7 days
-                        const weekData = {};
-                        for (let i = 6; i >= 0; i--) {
-                            const d = new Date(now);
-                            d.setDate(now.getDate() - i);
-                            const dateStr = d.toISOString().slice(0, 10);
-                            labels.push(d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }));
-                            weekData[dateStr] = 0;
-                        }
-                        records.forEach(record => {
-                            if (weekData.hasOwnProperty(record.date)) {
-                                weekData[record.date] += record.duration;
-                            }
-                        });
-                        data = labels.map(label => {
-                            const dateParts = label.split('/');
-                            const month = parseInt(dateParts[0]);
-                            const day = parseInt(dateParts[1]);
-                            // Use current year
-                            const fullDateStr = `${now.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                            return weekData[fullDateStr] || 0;
-                        });
-                        break;
-                    case 'month':
-                        // Records for the current month (daily)
-                        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                        const monthData = {};
-                        for (let i = 1; i <= daysInMonth; i++) {
-                            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                            labels.push(String(i));
-                            monthData[dateStr] = 0;
-                        }
-                        records.forEach(record => {
-                            if (record.date.startsWith(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)) {
-                                monthData[record.date] += record.duration;
-                            }
-                        });
-                        data = labels.map(day => {
-                            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                            return monthData[dateStr] || 0;
-                        });
-                        break;
-                    case 'year':
-                        // Records for the current year (monthly)
-                        const yearData = {};
-                        for (let i = 0; i < 12; i++) {
-                            labels.push(`${i + 1}月`);
-                            const monthStr = `${now.getFullYear()}-${String(i + 1).padStart(2, '0')}`;
-                            yearData[monthStr] = 0;
-                        }
-                        records.forEach(record => {
-                            const monthKey = record.date.slice(0, 7); // YYYY-MM
-                            if (record.date.startsWith(String(now.getFullYear()))) {
-                                yearData[monthKey] += record.duration;
-                            }
-                        });
-                        data = labels.map((_, index) => {
-                            const monthKey = `${now.getFullYear()}-${String(index + 1).padStart(2, '0')}`;
-                            return yearData[monthKey] || 0;
-                        });
-                        break;
+                break;
+              case "year":
+                if (date.getFullYear() === now.getFullYear()) {
+                  key = date.getMonth() + 1 + "月";
+                  include = true;
                 }
-
-                const ctx = recordsChartCanvas.getContext('2d');
-                chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: '集中時間 (分)',
-                            data: data,
-                            backgroundColor: settings.accentColor,
-                            borderRadius: 5,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false,
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': ' + context.raw + '分';
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    color: textColor // Use the value obtained from JS, not CSS variable directly
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(128, 128, 128, 0.2)' // Grid line color
-                                },
-                                ticks: {
-                                    color: textColor // Use the value obtained from JS, not CSS variable directly
-                                }
-                            }
-                        }
-                    }
-                });
+                break;
             }
 
-            // Initialize the application
-            init();
+            if (include) {
+              if (!aggregated[key]) aggregated[key] = 0;
+              aggregated[key] += session.duration;
+            }
+          });
+
+          const labels = Object.keys(aggregated);
+          const values = Object.values(aggregated);
+
+          const result = { labels: labels };
+          if (data.length > 0 && data[0].type === "work") {
+            result.workValues = values;
+          } else if (data.length > 0 && data[0].type === "break") {
+            result.breakValues = values;
+          }
+          return result;
+        }
+
+        async function updateCharts(period) {
+          const sessions = await getSessions();
+          const workSessions = sessions.filter((s) => s.type === "work");
+          const breakSessions = sessions.filter((s) => s.type === "break");
+
+          const workAggregated =
+            workSessions.length > 0
+              ? aggregateData(workSessions, period)
+              : { labels: [], workValues: [] };
+          const breakAggregated =
+            breakSessions.length > 0
+              ? aggregateData(breakSessions, period)
+              : { labels: [], breakValues: [] };
+
+          const allLabels = [
+            ...new Set([
+              ...(workAggregated.labels || []),
+              ...(breakAggregated.labels || []),
+            ]),
+          ];
+
+          const workValues = allLabels.map((label) =>
+            workAggregated.labels?.includes(label)
+              ? workAggregated.workValues[workAggregated.labels.indexOf(label)]
+              : 0
+          );
+          const breakValues = allLabels.map((label) =>
+            breakAggregated.labels?.includes(label)
+              ? breakAggregated.breakValues[
+                  breakAggregated.labels.indexOf(label)
+                ]
+              : 0
+          );
+
+          workChart.data.labels = allLabels;
+          workChart.data.datasets[0].data = workValues;
+          workChart.data.datasets[0].backgroundColor = settings.accentColor;
+          workChart.update();
+
+          breakChart.data.labels = allLabels;
+          breakChart.data.datasets[0].data = breakValues;
+          breakChart.data.datasets[0].backgroundColor = settings.accentColor;
+          breakChart.update();
+        }
+
+        // --- Event Listeners ---
+        // Navigation
+        startTimerBtn.addEventListener("click", () => {
+          resetTimer("work");
+          showScreen("timer-screen");
         });
+        showStatsBtn.addEventListener("click", () => {
+          showScreen("stats-screen");
+          updateCharts("day");
+        });
+        showSettingsBtn.addEventListener("click", () => {
+          showScreen("settings-screen");
+        });
+        backFromTimerBtn.addEventListener("click", async () => {
+          if (sessionStarted) {
+            await showConfirmModal();
+          }
+          showScreen("home-screen");
+          resetTimer("work");
+        });
+        backFromStatsBtn.addEventListener("click", () =>
+          showScreen("home-screen")
+        );
+        backFromSettingsBtn.addEventListener("click", () =>
+          showScreen("home-screen")
+        );
+
+        // Timer controls
+        timerControlBtn.addEventListener("click", () => {
+          if (timerState === "running") {
+            pauseTimer();
+          } else {
+            startTimer();
+          }
+        });
+
+        // Settings controls
+        workTimeInput.addEventListener("change", (e) => {
+          let value = Number(e.target.value);
+          if (value < 1) {
+            value = 1;
+            e.target.value = value;
+          }
+          settings.workTime = value;
+          saveSettings();
+        });
+
+        breakTimeInput.addEventListener("change", (e) => {
+          let value = Number(e.target.value);
+          if (value < 1) {
+            value = 1;
+            e.target.value = value;
+          }
+          settings.breakTime = value;
+          saveSettings();
+        });
+
+        [progressBarTypeSelect, accentColorInput, clockStyleSelect].forEach(
+          (input) => {
+            input.addEventListener("change", (e) => {
+              const key = e.target.id.replace(/-(\w)/g, (match, p1) =>
+                p1.toUpperCase()
+              );
+              settings[key] = e.target.value;
+              saveSettings();
+              applySettings();
+            });
+          }
+        );
+
+        [showProgressBarCheckbox, showTimerClockCheckbox].forEach((input) => {
+          input.addEventListener("change", (e) => {
+            const key = e.target.id.replace(/-(\w)/g, (match, p1) =>
+              p1.toUpperCase()
+            );
+            settings[key] = e.target.checked;
+            saveSettings();
+            applySettings();
+          });
+        });
+
+        alarmSoundInput.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const url = URL.createObjectURL(file);
+            settings.alarmSound = url;
+            alarmAudio.src = url;
+          }
+        });
+
+        resetAlarmBtn.addEventListener("click", () => {
+          settings.alarmSound = DEFAULT_ALARM_SRC;
+          alarmAudio.src = DEFAULT_ALARM_SRC;
+          alarmSoundInput.value = "";
+          saveSettings();
+        });
+
+        // Modal controls
+        modalConfirmBtn.addEventListener("click", () => {
+          hideConfirmModal();
+          if (modalResolve) modalResolve(true);
+        });
+        modalCancelBtn.addEventListener("click", () => {
+          hideConfirmModal();
+          if (modalResolve) modalResolve(false);
+        });
+
+        // Stats tabs
+        statsTabs.forEach((tab) => {
+          tab.addEventListener("click", (e) => {
+            statsTabs.forEach((t) => {
+              t.classList.remove("accent-text", "accent-border");
+              t.classList.add(
+                "border-transparent",
+                "text-gray-500",
+                "hover:text-gray-700",
+                "hover:border-gray-300"
+              );
+            });
+            e.currentTarget.classList.add("accent-text", "accent-border");
+            e.currentTarget.classList.remove(
+              "border-transparent",
+              "text-gray-500"
+            );
+            updateCharts(e.currentTarget.dataset.period);
+          });
+        });
+
+        // Listen for system theme changes
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            settings.darkMode = e.matches;
+            saveSettings();
+            applySettings();
+          });
+
+        // --- Initialization ---
+        function init() {
+          initDB();
+          loadSettings();
+          setInterval(updateClocks, 1000);
+          updateClocks();
+          workChart = createChart(workChartCanvas, "作業時間");
+          breakChart = createChart(breakChartCanvas, "休憩時間");
+        }
+
+        init();
+      });
     </script>
-</body>
+  </body>
 </html>
